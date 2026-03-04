@@ -110,7 +110,7 @@ const submit = async () => {
           v-for="item in methodCards"
           :key="item.id"
           type="button"
-          class="rounded-[16px] border p-4 text-left transition"
+          class="slide-card rounded-[20px] border p-4 text-left transition"
           :class="item.id === method ? 'border-ink bg-ink/5 shadow-[var(--shadow-soft)]' : 'border-slate-200 bg-white hover:border-slate-300'"
           @click="method = item.id"
         >

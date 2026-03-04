@@ -1,33 +1,194 @@
-# carousel-ai MVP
+# carousel-ai
 
-## Project description
-`carousel-ai` is an MVP that generates editable Instagram carousels from text (and video/link sources), lets users tune design settings, and exports slides as a ZIP of PNG images.
+Production-style MVP for generating Instagram carousel posts from source text/video, editing slide content and design, and exporting final slides as a ZIP archive of PNG images.
 
-## Architecture
-- `frontend/`: Nuxt 3 + Tailwind app with pages for My Carousels, Create, Preview, and Editor.
-- `backend/`: FastAPI + SQLAlchemy API for carousels, slides, generation jobs, design updates, exports, and asset upload.
-- `postgres`: primary relational database for carousel data.
-- `minio`: S3-compatible storage for uploaded assets and generated ZIP exports.
-- `OpenRouter` (via OpenAI SDK): LLM generation provider.
-- `Playwright`: server-side rendering of 1080x1350 slide PNG images before zipping.
+## What the product does
+- Creates carousel drafts from user source input.
+- Runs async AI slide generation.
+- Shows preview with thumbnail navigation.
+- Provides editor with template/background/text/layout controls.
+- Exports slides as `1080x1350` PNGs zipped in MinIO with download URL.
 
-## Stack
+## Architecture overview
+`carousel-ai` is a single-repo full-stack app with 4 runtime services:
+
+- `frontend` (Nuxt 3): product UI and user flow.
+- `backend` (FastAPI): REST API, orchestration, async jobs.
+- `postgres`: persistent data store.
+- `minio`: S3-compatible object storage for assets and exports.
+
+Generation and export are orchestrated by backend services:
+- `LLMService` for OpenRouter calls and JSON normalization.
+- `ExportService` for Playwright rendering + ZIP upload.
+
+## Tech stack
 - FastAPI
-- Nuxt 3
+- Nuxt 3 (Vue 3)
 - PostgreSQL
 - MinIO
 - Docker Compose
+- SQLAlchemy
+- Playwright
+- OpenRouter (via OpenAI Python SDK)
 
-## Setup
+## Project structure
+```text
+carousel-ai/
+  backend/
+    app/
+      config.py
+      db.py
+      models.py
+      schemas.py
+      services/
+        llm.py
+        export.py
+        storage.py
+    main.py
+  frontend/
+    app.vue
+    assets/css/main.css
+    composables/useApi.ts
+    pages/
+      index.vue
+      create.vue
+      preview/[id].vue
+      editor/[id].vue
+  docker-compose.yml
+  README.md
+  README_RU.md
+```
+
+## Quick start
 ```bash
 docker compose up --build
 ```
 
 Open:
-- `http://localhost:3000` (frontend)
-- `http://localhost:8000` (backend)
+- Frontend: `http://localhost:3000`
+- Backend: `http://localhost:8000`
 
-Environment variables:
+## Demo flow
+1. Create carousel
+2. Generate slides
+3. Preview
+4. Edit
+5. Export ZIP
+
+## API endpoints overview
+- `GET /health`
+- `GET /carousels`
+- `POST /carousels`
+- `GET /carousels/{id}`
+- `GET /carousels/{id}/slides`
+- `PATCH /carousels/{id}/slides/{slide_id}`
+- `PATCH /carousels/{id}/design`
+- `POST /generations`
+- `GET /generations/{id}`
+- `POST /exports`
+- `GET /exports/{id}`
+- `POST /assets/upload`
+
+## API examples (curl)
+Health check:
+```bash
+curl http://localhost:8000/health
+```
+
+Create carousel:
+```bash
+curl -X POST http://localhost:8000/carousels \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "AI onboarding checklist",
+    "source_type": "text",
+    "source_payload": {"text": "A practical onboarding framework for AI teams"},
+    "slides_count": 6,
+    "language": "EN",
+    "style_hint": "clear tactical"
+  }'
+```
+
+Start async generation:
+```bash
+curl -X POST http://localhost:8000/generations \
+  -H "Content-Type: application/json" \
+  -d '{"carousel_id":"<CAROUSEL_ID>"}'
+```
+
+Poll generation status:
+```bash
+curl http://localhost:8000/generations/<GENERATION_ID>
+```
+
+Patch design settings:
+```bash
+curl -X PATCH http://localhost:8000/carousels/<CAROUSEL_ID>/design \
+  -H "Content-Type: application/json" \
+  -d '{
+    "template":"Bold",
+    "background_color":"#EAF2FF",
+    "dark_overlay":true,
+    "dark_overlay_opacity":0.35,
+    "content_padding":64,
+    "horizontal_alignment":"left",
+    "vertical_alignment":"center"
+  }'
+```
+
+Export ZIP:
+```bash
+curl -X POST http://localhost:8000/exports \
+  -H "Content-Type: application/json" \
+  -d '{"carousel_id":"<CAROUSEL_ID>"}'
+```
+
+## AI generation pipeline
+1. User creates a carousel (`POST /carousels`).
+2. UI starts generation (`POST /generations`).
+3. FastAPI schedules background task (`BackgroundTasks`) and returns immediately.
+4. LLM service calls OpenRouter chat completions endpoint.
+5. Backend validates JSON payload structure and slide count.
+6. If response JSON is malformed, backend attempts lightweight JSON repair.
+7. Only if request/validation fails, backend falls back to local placeholder slides.
+8. Generated slides are persisted into Postgres and exposed via `/carousels/{id}/slides`.
+
+Provider details:
+- Endpoint: `https://openrouter.ai/api/v1/chat/completions`
+- Model (default): `openai/gpt-4o-mini`
+
+## JSON validation and repair fallback
+`backend/app/services/llm.py` includes:
+- strict extraction of `choices[0].message.content`
+- JSON parsing with schema-like checks (`slides` list, required fields)
+- repair pass for common malformed patterns (trailing commas / missing closing braces)
+- fallback to local slides only when OpenRouter request or JSON validation cannot be recovered
+
+## Async generation architecture
+Generation is non-blocking for API clients:
+- `/generations` returns job metadata immediately (`pending`/`running`/`completed`/`failed`).
+- Worker logic runs in background task and updates DB status.
+- Frontend polls `/generations/{id}` and transitions UI states (`queued`, `running`, `done`, `failed`).
+
+## Export pipeline
+1. Client triggers export (`POST /exports`).
+2. Backend loads carousel slides.
+3. Playwright renders each slide to `1080x1350` PNG.
+4. PNGs are zipped with names:
+   - `slide_01.png`
+   - `slide_02.png`
+   - ...
+5. ZIP is uploaded to MinIO (`carousel-exports` bucket).
+6. API returns presigned download URL.
+7. Frontend shows progress and auto-opens ZIP when ready.
+
+## Demo seed data
+On backend startup, if DB is empty:
+- creates one demo carousel titled `AI Startup Onboarding Guide`
+- creates 6 readable demo slides
+- marks status as `ready`
+
+## Environment variables
 ```bash
 OPENROUTER_API_KEY=YOUR_KEY
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
@@ -42,100 +203,20 @@ MINIO_SECRET_KEY=minioadmin
 MINIO_SECURE=false
 ```
 
-## Demo flow
-1. Create carousel
-2. Generate slides
-3. Preview
-4. Edit
-5. Export ZIP
-
-## API endpoints
-- `GET /health`
-- `GET /carousels`
-- `POST /carousels`
-- `GET /carousels/{id}`
-- `GET /carousels/{id}/slides`
-- `PATCH /carousels/{id}/slides/{slide_id}`
-- `PATCH /carousels/{id}/design`
-- `POST /generations`
-- `GET /generations/{id}`
-- `POST /exports`
-- `GET /exports/{id}`
-- `POST /assets/upload`
-
-## API examples
-Health:
-```bash
-curl http://localhost:8000/health
-```
-
-Create carousel:
-```bash
-curl -X POST http://localhost:8000/carousels \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title":"AI onboarding checklist",
-    "source_type":"text",
-    "source_payload":{"text":"Step-by-step onboarding framework"},
-    "slides_count":7,
-    "language":"EN",
-    "style_hint":"bold educational"
-  }'
-```
-
-Start generation:
-```bash
-curl -X POST http://localhost:8000/generations \
-  -H "Content-Type: application/json" \
-  -d '{"carousel_id":"<CAROUSEL_ID>"}'
-```
-
-Poll generation:
-```bash
-curl http://localhost:8000/generations/<GENERATION_ID>
-```
-
-Patch design:
-```bash
-curl -X PATCH http://localhost:8000/carousels/<CAROUSEL_ID>/design \
-  -H "Content-Type: application/json" \
-  -d '{"template":"Classic","background_color":"#ffffff","show_header":true}'
-```
-
-Patch slide:
-```bash
-curl -X PATCH http://localhost:8000/carousels/<CAROUSEL_ID>/slides/<SLIDE_ID> \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Updated title","body":"Updated body","footer":"Updated footer"}'
-```
-
-Export:
-```bash
-curl -X POST http://localhost:8000/exports \
-  -H "Content-Type: application/json" \
-  -d '{"carousel_id":"<CAROUSEL_ID>"}'
-```
-
-Upload image:
-```bash
-curl -X POST http://localhost:8000/assets/upload \
-  -F "file=@/path/to/file.png"
-```
-
 ## Tools used
 - Cursor
 - ChatGPT
 - Codex
 
-## LLM provider
-- OpenRouter endpoint: `https://openrouter.ai/api/v1/chat/completions`
-- Primary model: `openai/gpt-4o-mini`
-
-## Estimated token usage
-- Input prompt: ~900-1,700 tokens per generation
-- Output for 6-10 slides: ~350-1,200 tokens
-- Total per generation: ~1,250-2,900 tokens
-
 ## Estimated development time
-- MVP baseline: ~9 hours
-- UI/flow polish and design alignment: ~5 hours
+- MVP implementation: ~9 hours
+- Product polish + UX alignment + debugging: ~6 hours
+- Total: ~15 hours
+
+## Token usage estimate
+Per one generation run (6–10 slides):
+- Prompt/input: ~900–1,700 tokens
+- Completion/output: ~350–1,200 tokens
+- Total: ~1,250–2,900 tokens
+
+Actual token usage depends on source text size, slide count, and model behavior.

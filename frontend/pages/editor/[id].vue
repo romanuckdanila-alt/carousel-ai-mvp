@@ -352,18 +352,19 @@ onMounted(load)
     <div v-else class="grid gap-4 xl:grid-cols-[1fr_390px]">
       <div class="panel p-4">
         <div class="flex items-center justify-between gap-2">
-          <button class="btn-secondary" :disabled="!canPrev" @click="currentIndex -= 1">← Prev</button>
+          <button class="btn-secondary nav-arrow" :disabled="!canPrev" @click="currentIndex -= 1">← Prev</button>
           <p class="meta-label">Slide {{ currentIndex + 1 }} / {{ slides.length }}</p>
-          <button class="btn-secondary" :disabled="!canNext" @click="currentIndex += 1">Next →</button>
+          <button class="btn-secondary nav-arrow" :disabled="!canNext" @click="currentIndex += 1">Next →</button>
         </div>
 
-        <div class="mt-4 flex justify-center">
+        <div class="editor-preview-wrapper mt-4">
+          <div class="editor-preview-scale">
           <div
-            class="relative aspect-[4/5] w-full max-w-[540px] overflow-hidden border border-slate-200/70"
-            :class="design.roundedPreview ? 'rounded-[24px]' : 'rounded-[12px]'"
+            class="editor-preview-canvas slide-card relative aspect-[4/5] w-full border border-slate-200/70"
+            :class="design.roundedPreview ? 'rounded-[20px]' : 'rounded-[12px]'"
             :style="slideContainerStyle"
           >
-            <div class="flex h-full flex-col rounded-[inherit] bg-white/0">
+            <div class="editor-content flex h-full flex-col rounded-[inherit] bg-white/0">
               <header
                 class="border-b pb-3"
                 :class="design.template === 'Bold' ? 'border-white/20 text-slate-100' : 'border-slate-300/70 text-slate-600'"
@@ -373,7 +374,7 @@ onMounted(load)
               </header>
 
               <main class="flex flex-1" :style="{ justifyContent: justifyMap, alignItems: alignMap }">
-                <article class="w-full max-w-[95%] py-4">
+                <article class="w-full max-w-[96%] py-4">
                   <div
                     v-if="design.showOrderBadge"
                     class="mb-3 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold"
@@ -394,6 +395,7 @@ onMounted(load)
                 <p class="text-sm">{{ design.footerText || currentSlide?.footer }}</p>
               </footer>
             </div>
+          </div>
           </div>
         </div>
       </div>
@@ -614,3 +616,47 @@ onMounted(load)
     </div>
   </section>
 </template>
+
+<style scoped>
+.editor-preview-wrapper {
+  overflow: visible;
+  display: flex;
+  justify-content: center;
+}
+
+.editor-preview-scale {
+  --editor-scale: 0.95;
+  width: min(100%, 560px, calc((100vh - 250px) * 4 / 5));
+  transform: scale(var(--editor-scale));
+  transform-origin: top center;
+}
+
+.editor-preview-canvas {
+  overflow: visible;
+}
+
+.editor-content {
+  padding: clamp(24px, 3.2vw, 42px);
+}
+
+@media (max-width: 1120px) {
+  .editor-preview-scale {
+    --editor-scale: 0.9;
+    width: min(100%, 520px, calc((100vh - 250px) * 4 / 5));
+  }
+}
+
+@media (max-width: 820px) {
+  .editor-preview-scale {
+    --editor-scale: 0.85;
+    width: min(100%, 490px, calc((100vh - 220px) * 4 / 5));
+  }
+}
+
+@media (max-width: 560px) {
+  .editor-preview-scale {
+    --editor-scale: 0.8;
+    width: min(100%, 450px, calc((100vh - 180px) * 4 / 5));
+  }
+}
+</style>

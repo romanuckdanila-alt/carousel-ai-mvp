@@ -1,0 +1,104 @@
+# carousel-ai (MVP)
+
+`carousel-ai` — это MVP-сервис для генерации Instagram-каруселей из текста/видео, с последующим редактированием слайдов и экспортом в ZIP с изображениями.
+
+## Описание проекта
+Продукт позволяет:
+- создавать карусели из исходного контента,
+- запускать асинхронную генерацию слайдов через LLM,
+- просматривать результат до редактирования,
+- настраивать дизайн (шаблон, фон, текст, выравнивание),
+- экспортировать слайды как PNG (1080x1350) в ZIP.
+
+## Архитектура
+Система состоит из 4 сервисов:
+- `frontend` (Nuxt 3): пользовательский интерфейс,
+- `backend` (FastAPI): API и бизнес-логика,
+- `postgres`: хранение данных,
+- `minio`: файловое хранилище (S3-совместимое).
+
+Ключевые пайплайны:
+- генерация слайдов: OpenRouter -> валидация JSON -> запись в БД,
+- экспорт: Playwright рендерит PNG -> архивирование -> загрузка в MinIO.
+
+## Стек
+- FastAPI
+- Nuxt 3 (Vue 3)
+- PostgreSQL
+- MinIO
+- Docker Compose
+- SQLAlchemy
+- Playwright
+
+## Как запустить
+```bash
+docker compose up --build
+```
+
+Открыть:
+- Frontend: `http://localhost:3000`
+- Backend: `http://localhost:8000`
+
+## Флоу продукта
+1. Создать карусель
+2. Сгенерировать слайды
+3. Посмотреть Preview
+4. Отредактировать в Editor
+5. Экспортировать ZIP
+
+## Описание API
+Основные эндпоинты:
+- `GET /health`
+- `GET /carousels`
+- `POST /carousels`
+- `GET /carousels/{id}`
+- `GET /carousels/{id}/slides`
+- `PATCH /carousels/{id}/slides/{slide_id}`
+- `PATCH /carousels/{id}/design`
+- `POST /generations`
+- `GET /generations/{id}`
+- `POST /exports`
+- `GET /exports/{id}`
+- `POST /assets/upload`
+
+Пример запуска генерации:
+```bash
+curl -X POST http://localhost:8000/generations \
+  -H "Content-Type: application/json" \
+  -d '{"carousel_id":"<CAROUSEL_ID>"}'
+```
+
+## LLM генерация
+Пайплайн генерации:
+1. Создается задача (`POST /generations`).
+2. FastAPI запускает фоновую обработку (`BackgroundTasks`).
+3. `LLMService` делает запрос в OpenRouter.
+4. Ответ проверяется как JSON со структурой `{"slides": [...]}`.
+5. Если JSON слегка поврежден, применяется этап JSON repair.
+6. Если запрос/валидация окончательно неуспешны, включается fallback на локальные слайды.
+
+Провайдер:
+- OpenRouter (`/chat/completions`)
+- модель по умолчанию: `openai/gpt-4o-mini`
+
+## Экспорт
+1. Вызывается `POST /exports`.
+2. Слайды рендерятся Playwright в PNG `1080x1350`.
+3. Файлы архивируются (`slide_01.png`, `slide_02.png`, ...).
+4. ZIP загружается в MinIO.
+5. Возвращается presigned URL для скачивания.
+
+## Какие упрощения сделаны для MVP
+- Асинхронные задачи реализованы через `BackgroundTasks` (без отдельной очереди/воркеров типа Celery).
+- Нет полноценной аутентификации и мульти-тенантности.
+- Дизайн-настройки хранятся в `source_payload.design` (JSON), без отдельной normalized схемы.
+- Экспорт выполняется синхронно в рамках API-вызова `POST /exports`.
+- Токены оцениваются эвристически на фронтенде (без точного токенайзера).
+
+## Демо-данные
+При пустой БД backend создает демонстрационную карусель:
+- заголовок: `AI Startup Onboarding Guide`
+- 6 слайдов
+- статус: `ready`
+
+Это позволяет сразу проверить preview/editor/export после запуска.

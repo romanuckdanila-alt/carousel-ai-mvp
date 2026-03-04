@@ -108,7 +108,7 @@ onMounted(load)
       <article
         v-for="carousel in carousels"
         :key="carousel.id"
-        class="panel overflow-hidden border border-slate-200/70"
+        class="panel slide-card overflow-hidden border border-slate-200/70"
       >
         <div class="relative border-b border-slate-200/70 bg-white p-4">
           <div class="flex items-center justify-between gap-2">
