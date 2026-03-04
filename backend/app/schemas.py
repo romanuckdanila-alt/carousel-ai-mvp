@@ -54,6 +54,7 @@ class CarouselDesignUpdate(BaseModel):
     background_color: str | None = None
     background_image_url: str | None = None
     dark_overlay: bool | None = None
+    dark_overlay_opacity: float | None = Field(default=None, ge=0, le=1)
     show_header: bool | None = None
     show_footer: bool | None = None
     header_text: str | None = None

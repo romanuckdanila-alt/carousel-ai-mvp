@@ -144,19 +144,93 @@ class LLMService:
         raise RuntimeError(f"OpenRouter request failed across all retries: {last_error}")
 
     def _parse_json_payload(self, content: str) -> dict[str, Any]:
+        cleaned = self._strip_code_fences(content)
         try:
-            return json.loads(content)
+            payload = json.loads(cleaned)
+            if not isinstance(payload, dict):
+                raise ValueError("OpenRouter payload root is not an object")
+            return payload
         except json.JSONDecodeError as exc:
-            logger.warning("OpenRouter JSON parse failed on raw content: %s", content)
-            match = re.search(r"\{[\s\S]*\}", content)
-            if not match:
+            logger.warning("OpenRouter JSON parse failed on raw content: %s", cleaned)
+            candidate = self._extract_json_candidate(cleaned)
+            if not candidate:
                 logger.error("OpenRouter response has no JSON object to parse")
                 raise ValueError("OpenRouter response does not contain JSON object") from exc
+
             try:
-                return json.loads(match.group(0))
+                payload = json.loads(candidate)
+                if not isinstance(payload, dict):
+                    raise ValueError("OpenRouter payload root is not an object")
+                return payload
             except json.JSONDecodeError as nested_exc:
-                logger.error("OpenRouter extracted JSON parsing failed: %s", nested_exc)
-                raise ValueError("OpenRouter JSON parsing failed") from nested_exc
+                repaired = self._repair_json(candidate)
+                try:
+                    payload = json.loads(repaired)
+                    if not isinstance(payload, dict):
+                        raise ValueError("OpenRouter payload root is not an object")
+                    logger.info("OpenRouter JSON repaired successfully")
+                    return payload
+                except json.JSONDecodeError as repaired_exc:
+                    logger.error(
+                        "OpenRouter extracted JSON parsing failed: %s; repair_error=%s",
+                        nested_exc,
+                        repaired_exc,
+                    )
+                    raise ValueError("OpenRouter JSON parsing failed") from repaired_exc
+
+    def _strip_code_fences(self, text: str) -> str:
+        stripped = text.strip()
+        if stripped.startswith("```") and stripped.endswith("```"):
+            stripped = re.sub(r"^```(?:json)?\s*", "", stripped, flags=re.IGNORECASE)
+            stripped = re.sub(r"\s*```$", "", stripped)
+        return stripped.strip()
+
+    def _extract_json_candidate(self, text: str) -> str | None:
+        first_brace = text.find("{")
+        if first_brace == -1:
+            return None
+
+        last_brace = text.rfind("}")
+        if last_brace == -1 or last_brace < first_brace:
+            return text[first_brace:].strip()
+        return text[first_brace : last_brace + 1].strip()
+
+    def _repair_json(self, text: str) -> str:
+        # Common malformed output: trailing commas and missing closing braces/brackets.
+        repaired = re.sub(r",\s*([}\]])", r"\1", text.strip())
+        stack: list[str] = []
+        in_string = False
+        escaped = False
+
+        for char in repaired:
+            if in_string:
+                if escaped:
+                    escaped = False
+                elif char == "\\":
+                    escaped = True
+                elif char == '"':
+                    in_string = False
+                continue
+
+            if char == '"':
+                in_string = True
+                continue
+
+            if char in "{[":
+                stack.append(char)
+                continue
+
+            if char in "}]":
+                if not stack:
+                    continue
+                top = stack[-1]
+                if (top == "{" and char == "}") or (top == "[" and char == "]"):
+                    stack.pop()
+
+        closers = []
+        for opener in reversed(stack):
+            closers.append("}" if opener == "{" else "]")
+        return repaired + "".join(closers)
 
     def _validate_and_normalize_slides(self, payload: dict[str, Any], carousel: Carousel) -> list[dict[str, Any]]:
         slides = payload.get("slides")

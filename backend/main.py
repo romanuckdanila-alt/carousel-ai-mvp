@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.config import settings
 from app.db import SessionLocal, get_db, init_db
-from app.models import Carousel, Export, Generation, Slide
+from app.models import Carousel, Export, Generation, Language, Slide, SourceType
 from app.schemas import (
     AssetUploadResponse,
     CarouselCreate,
@@ -47,9 +47,109 @@ llm_service = LLMService()
 export_service = ExportService(storage_service)
 
 
+def _seed_demo_carousel() -> None:
+    db = SessionLocal()
+    try:
+        if db.query(Carousel.id).first():
+            return
+
+        demo_slides = [
+            {
+                "order": 1,
+                "title": "Welcome to your first 14 days",
+                "body": "Start with product context: vision, user pain, and success metrics.",
+                "footer": "Build context first",
+            },
+            {
+                "order": 2,
+                "title": "Map your tool stack",
+                "body": "Set up analytics, docs, task board, and communication channels.",
+                "footer": "Own your workspace",
+            },
+            {
+                "order": 3,
+                "title": "Interview key stakeholders",
+                "body": "Talk to founders, design, engineering, support, and sales leads.",
+                "footer": "Collect real constraints",
+            },
+            {
+                "order": 4,
+                "title": "Define onboarding KPIs",
+                "body": "Track activation, retention, and first-value completion by segment.",
+                "footer": "Measure what matters",
+            },
+            {
+                "order": 5,
+                "title": "Ship one small improvement",
+                "body": "Pick a low-risk win to learn release process and team cadence.",
+                "footer": "Learn by shipping",
+            },
+            {
+                "order": 6,
+                "title": "Align on 30-60-90 plan",
+                "body": "Present priorities, tradeoffs, and expected outcomes to leadership.",
+                "footer": "Create clear momentum",
+            },
+        ]
+
+        carousel = Carousel(
+            title="AI Startup Onboarding Guide",
+            source_type=SourceType.text,
+            source_payload={
+                "text": "Demo seed carousel for reviewers.",
+                "design": {
+                    "template": "Classic",
+                    "background_color": "#f4f6fb",
+                    "dark_overlay": False,
+                    "show_header": True,
+                    "show_footer": True,
+                    "header_text": "AI Startup Onboarding Guide",
+                    "footer_text": "Demo carousel",
+                    "content_padding": 52,
+                    "horizontal_alignment": "left",
+                    "vertical_alignment": "top",
+                },
+            },
+            slides_count=6,
+            language=Language.EN,
+            style_hint="clean and practical",
+            status="ready",
+        )
+        db.add(carousel)
+        db.flush()
+
+        for slide in demo_slides:
+            db.add(
+                Slide(
+                    carousel_id=carousel.id,
+                    order=slide["order"],
+                    title=slide["title"],
+                    body=slide["body"],
+                    footer=slide["footer"],
+                )
+            )
+
+        db.add(
+            Generation(
+                carousel_id=carousel.id,
+                status="completed",
+                result_json={"provider": "seed", "slides": demo_slides},
+            )
+        )
+
+        db.commit()
+        logger.info("Seeded demo carousel id=%s", carousel.id)
+    except Exception:
+        logger.exception("Failed to seed demo carousel")
+        db.rollback()
+    finally:
+        db.close()
+
+
 @app.on_event("startup")
 def on_startup() -> None:
     init_db()
+    _seed_demo_carousel()
 
     for attempt in range(1, 21):
         try:

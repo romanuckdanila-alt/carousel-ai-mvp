@@ -24,6 +24,11 @@ const methodCards = [
   { id: "links", title: "From links", hint: "Optional mode: multiple URLs in one input." }
 ] as const
 
+const estimatedTokens = computed(() => {
+  const sourceWeight = Math.ceil(Math.min(form.sourceInput.length, 2400) / 4)
+  return form.slidesCount * 220 + sourceWeight + 180
+})
+
 const buildPayload = () => {
   if (method.value === "video") {
     return { source_type: "video", source_payload: { video_url: form.sourceInput } }
@@ -43,7 +48,7 @@ const waitForGeneration = async (generationId: string) => {
     const mapped = mapGenerationStatus(state.status)
     generationStep.value = mapped as typeof generationStep.value
     generationMessage.value = mapped === "done"
-      ? "Slides generated successfully"
+      ? "Generation completed"
       : mapped === "failed"
         ? "Generation failed"
         : `Generation ${mapped}`
@@ -94,19 +99,19 @@ const submit = async () => {
 </script>
 
 <template>
-  <section class="space-y-5">
-    <div class="panel p-5">
-      <p class="text-xs uppercase tracking-[0.2em] text-slate">Step 1</p>
-      <h1 class="font-display text-3xl">Create Carousel</h1>
-      <p class="mt-1 text-sm text-slate">Select source type and generate a production-ready carousel.</p>
+  <section class="space-y-6">
+    <div class="panel p-6">
+      <p class="meta-label">Step 1</p>
+      <h1 class="font-display text-3xl md:text-4xl">Create Carousel</h1>
+      <p class="mt-2 text-sm text-slate">Select source type and generate a production-ready carousel.</p>
 
-      <div class="mt-5 grid gap-3 md:grid-cols-3">
+      <div class="mt-6 grid gap-3 md:grid-cols-3">
         <button
           v-for="item in methodCards"
           :key="item.id"
           type="button"
-          class="rounded-xl border p-4 text-left transition"
-          :class="item.id === method ? 'border-ink bg-ink/5' : 'border-slate/20 bg-white hover:border-slate/40'"
+          class="rounded-[16px] border p-4 text-left transition"
+          :class="item.id === method ? 'border-ink bg-ink/5 shadow-[var(--shadow-soft)]' : 'border-slate-200 bg-white hover:border-slate-300'"
           @click="method = item.id"
         >
           <p class="font-display text-xl">{{ item.title }}</p>
@@ -115,7 +120,7 @@ const submit = async () => {
       </div>
     </div>
 
-    <form class="panel space-y-4 p-5" @submit.prevent="submit">
+    <form class="panel space-y-4 p-6" @submit.prevent="submit">
       <div class="grid gap-4 md:grid-cols-2">
         <label class="block">
           <span class="mb-1 block text-sm font-medium">Title</span>
@@ -149,21 +154,33 @@ const submit = async () => {
         </span>
         <textarea
           v-model="form.sourceInput"
-          class="field min-h-32"
+          class="field min-h-36"
           :placeholder="method === 'video' ? 'https://youtube.com/...' : method === 'links' ? 'https://site.com/post-1\nhttps://site.com/post-2' : 'Paste your source text'"
           required
         />
       </label>
 
-      <div v-if="generationStep !== 'idle'" class="rounded-xl border border-slate/15 bg-slate/5 p-3">
-        <p class="text-sm font-medium">Generation status: <span class="capitalize">{{ generationStep }}</span></p>
+      <div class="rounded-[16px] border border-slate-200 bg-slate-50/60 p-3">
+        <p class="text-xs text-slate">Generation will consume approximately <strong>{{ estimatedTokens }}</strong> tokens.</p>
+      </div>
+
+      <div v-if="generationStep !== 'idle'" class="rounded-[16px] border border-slate-200 bg-white p-3">
+        <div class="flex items-center gap-2 text-sm font-medium">
+          <span v-if="generationStep === 'queued' || generationStep === 'running'" class="loader-dot text-amber-500" />
+          <span v-if="generationStep === 'done'" class="h-2 w-2 rounded-full bg-emerald-500" />
+          <span v-if="generationStep === 'failed'" class="h-2 w-2 rounded-full bg-rose-500" />
+          <span>Generation status: <span class="capitalize">{{ generationStep }}</span></span>
+        </div>
         <p class="text-xs text-slate">{{ generationMessage }}</p>
       </div>
 
       <p v-if="error" class="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{{ error }}</p>
 
-      <div class="flex flex-wrap gap-2">
-        <button class="btn-primary" :disabled="loading">{{ loading ? 'Generating...' : 'Generate carousel' }}</button>
+      <div class="flex flex-wrap items-center gap-3">
+        <button class="btn-primary" :disabled="loading">
+          <span v-if="loading" class="loader-dot" />
+          {{ loading ? 'Generating...' : 'Generate carousel' }}
+        </button>
         <NuxtLink to="/" class="btn-secondary">Cancel</NuxtLink>
       </div>
     </form>

@@ -7,6 +7,7 @@ export interface CarouselDesignSettings {
   background_color?: string
   background_image_url?: string
   dark_overlay?: boolean
+  dark_overlay_opacity?: number
   show_header?: boolean
   show_footer?: boolean
   header_text?: string
@@ -72,6 +73,7 @@ export interface CarouselDesignUpdatePayload {
   background_color?: string
   background_image_url?: string
   dark_overlay?: boolean
+  dark_overlay_opacity?: number
   show_header?: boolean
   show_footer?: boolean
   header_text?: string
@@ -85,6 +87,7 @@ export interface CarouselDesignUpdatePayload {
 export const mapCarouselStatus = (status: string) => {
   if (status === "draft") return "draft"
   if (status === "generating") return "generating"
+  if (status === "ready") return "ready"
   if (status === "generation_failed") return "failed"
   if (status === "generated" || status === "generated_fallback" || status === "exported") return "ready"
   return status

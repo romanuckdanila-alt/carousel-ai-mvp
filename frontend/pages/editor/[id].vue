@@ -16,14 +16,17 @@ const { api } = useApi()
 const carousel = ref<Carousel | null>(null)
 const slides = ref<Slide[]>([])
 const currentIndex = ref(0)
+
 const loading = ref(true)
 const savingSlide = ref(false)
 const savingDesign = ref(false)
 const exporting = ref(false)
 const regenerating = ref(false)
+
 const error = ref("")
 const message = ref("")
 const generationState = ref<"idle" | "queued" | "running" | "done" | "failed">("idle")
+const exportState = ref<"idle" | "exporting" | "preparing" | "ready" | "failed">("idle")
 
 const activeSection = ref<"template" | "background" | "text" | "layout" | "additional" | "export">("template")
 const templateModalOpen = ref(false)
@@ -33,14 +36,14 @@ const design = reactive({
   template: "Classic" as "Classic" | "Bold" | "Minimal",
   backgroundColor: "#ffffff",
   backgroundImageUrl: "",
-  darkOverlay: false,
+  darkOverlayOpacity: 0,
   showHeader: true,
   showFooter: true,
   headerText: "",
   footerText: "",
-  contentPadding: 52,
+  contentPadding: 48,
   horizontalAlignment: "left" as "left" | "center" | "right",
-  verticalAlignment: "top" as "top" | "center" | "bottom",
+  verticalAlignment: "center" as "top" | "center" | "bottom",
   showOrderBadge: true,
   roundedPreview: true
 })
@@ -49,20 +52,23 @@ const templatePresets = [
   {
     id: "Classic" as const,
     title: "Classic",
-    hint: "Clean educational style",
-    bg: "#ffffff"
+    hint: "Balanced content and calm colors",
+    bg: "#ffffff",
+    text: "#102a43"
   },
   {
     id: "Bold" as const,
     title: "Bold",
-    hint: "High-contrast punchy look",
-    bg: "#0f172a"
+    hint: "High contrast with centered hierarchy",
+    bg: "#0f172a",
+    text: "#f8fafc"
   },
   {
     id: "Minimal" as const,
     title: "Minimal",
-    hint: "Soft typography-focused layout",
-    bg: "#f6f8fc"
+    hint: "Light and typography focused",
+    bg: "#f3f6fb",
+    text: "#102a43"
   }
 ]
 
@@ -71,44 +77,57 @@ const currentSlide = computed(() => slides.value[currentIndex.value] || null)
 const canPrev = computed(() => currentIndex.value > 0)
 const canNext = computed(() => currentIndex.value < slides.value.length - 1)
 
-const verticalJustify = computed(() => {
-  if (design.verticalAlignment === "center") return "center"
+const justifyMap = computed(() => {
+  if (design.verticalAlignment === "top") return "flex-start"
   if (design.verticalAlignment === "bottom") return "flex-end"
-  return "flex-start"
+  return "center"
 })
 
-const horizontalItems = computed(() => {
-  if (design.horizontalAlignment === "center") return "center"
+const alignMap = computed(() => {
+  if (design.horizontalAlignment === "left") return "flex-start"
   if (design.horizontalAlignment === "right") return "flex-end"
-  return "flex-start"
+  return "center"
 })
 
 const slideContainerStyle = computed(() => {
+  const textColor = design.template === "Bold" ? "#f8fafc" : "#102a43"
+  const overlayOpacity = Math.max(0, Math.min(90, design.darkOverlayOpacity)) / 100
+  const overlay = overlayOpacity > 0
+    ? `linear-gradient(rgba(8, 12, 24, ${overlayOpacity}), rgba(8, 12, 24, ${overlayOpacity}))`
+    : ""
   const hasImage = Boolean(design.backgroundImageUrl)
-  const overlay = design.darkOverlay ? "linear-gradient(rgba(12, 14, 25, 0.45), rgba(12, 14, 25, 0.45))" : ""
-  const bgImage = hasImage
+
+  const backgroundImage = hasImage
     ? overlay
       ? `${overlay}, url(${design.backgroundImageUrl})`
       : `url(${design.backgroundImageUrl})`
     : "none"
 
   return {
-    padding: `${design.contentPadding}px`,
     backgroundColor: design.backgroundColor,
-    backgroundImage: bgImage,
+    backgroundImage,
     backgroundSize: "cover",
     backgroundPosition: "center",
-    textAlign: design.horizontalAlignment,
-    color: design.template === "Bold" ? "#f8fafc" : "#102a43"
+    color: textColor,
+    padding: `${design.contentPadding}px`,
+    textAlign: design.horizontalAlignment
   }
 })
 
 const statusChipClass = computed(() => {
   const status = mapCarouselStatus(carousel.value?.status || "draft")
   if (status === "ready") return "bg-emerald-100 text-emerald-700"
-  if (status === "generating") return "bg-amber-100 text-amber-700"
+  if (status === "generating") return "bg-amber-100 text-amber-800"
   if (status === "failed") return "bg-rose-100 text-rose-700"
   return "bg-slate-100 text-slate-700"
+})
+
+const exportStatusText = computed(() => {
+  if (exportState.value === "exporting") return "Exporting..."
+  if (exportState.value === "preparing") return "Preparing images..."
+  if (exportState.value === "ready") return "Download ready"
+  if (exportState.value === "failed") return "Export failed"
+  return ""
 })
 
 const hydrateDesign = () => {
@@ -116,14 +135,14 @@ const hydrateDesign = () => {
   design.template = (raw.template as any) || "Classic"
   design.backgroundColor = raw.background_color || "#ffffff"
   design.backgroundImageUrl = raw.background_image_url || ""
-  design.darkOverlay = raw.dark_overlay ?? false
+  design.darkOverlayOpacity = Math.round((raw.dark_overlay_opacity ?? (raw.dark_overlay ? 0.45 : 0)) * 100)
   design.showHeader = raw.show_header ?? true
   design.showFooter = raw.show_footer ?? true
   design.headerText = raw.header_text || (carousel.value?.title || "")
   design.footerText = raw.footer_text || ""
-  design.contentPadding = raw.content_padding ?? 52
+  design.contentPadding = raw.content_padding ?? 48
   design.horizontalAlignment = (raw.horizontal_alignment as any) || "left"
-  design.verticalAlignment = (raw.vertical_alignment as any) || "top"
+  design.verticalAlignment = (raw.vertical_alignment as any) || "center"
 
   const additional = raw.additional || {}
   design.showOrderBadge = Boolean(additional.show_order_badge ?? true)
@@ -180,7 +199,6 @@ const saveDesign = async (patch: CarouselDesignUpdatePayload) => {
       method: "PATCH",
       body: patch
     })
-
     carousel.value = updated
     message.value = "Design settings saved"
   } catch (err: any) {
@@ -214,7 +232,6 @@ const uploadBackground = async (event: Event) => {
   form.append("file", file)
 
   try {
-    savingDesign.value = true
     const uploaded = await api<AssetUploadResult>("/assets/upload", {
       method: "POST",
       body: form as any
@@ -224,7 +241,6 @@ const uploadBackground = async (event: Event) => {
   } catch (err: any) {
     error.value = err?.data?.detail || err?.message || "Failed to upload image"
   } finally {
-    savingDesign.value = false
     input.value = ""
   }
 }
@@ -263,6 +279,7 @@ const regenerate = async () => {
 
 const exportZip = async () => {
   exporting.value = true
+  exportState.value = "exporting"
   error.value = ""
 
   try {
@@ -271,9 +288,11 @@ const exportZip = async () => {
       body: { carousel_id: carouselId.value }
     })
 
+    exportState.value = "preparing"
     let result = exportTask
+
     if (result.status !== "completed") {
-      for (let i = 0; i < 30; i += 1) {
+      for (let i = 0; i < 45; i += 1) {
         await wait(1000)
         result = await api<ExportResult>(`/exports/${result.id}`)
         if (result.status === "completed" || result.status === "failed") break
@@ -281,12 +300,14 @@ const exportZip = async () => {
     }
 
     if (result.zip_url) {
+      exportState.value = "ready"
+      message.value = "Download ready"
       window.open(result.zip_url, "_blank")
-      message.value = "Export ZIP ready"
     } else {
       throw new Error("Export failed")
     }
   } catch (err: any) {
+    exportState.value = "failed"
     error.value = err?.data?.detail || err?.message || "Failed to export"
   } finally {
     exporting.value = false
@@ -297,75 +318,81 @@ onMounted(load)
 </script>
 
 <template>
-  <section class="space-y-4">
-    <div class="panel p-4">
+  <section class="space-y-5">
+    <div class="panel p-5">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p class="text-xs uppercase tracking-[0.2em] text-slate">Step 4</p>
-          <h1 class="font-display text-2xl md:text-3xl">Carousel Editor</h1>
-          <p class="text-sm text-slate">{{ carousel?.title || 'Loading...' }}</p>
+          <p class="meta-label">Step 4</p>
+          <h1 class="font-display text-3xl md:text-4xl">Carousel Editor</h1>
+          <p class="mt-1 text-sm text-slate">{{ carousel?.title || 'Loading...' }}</p>
         </div>
 
         <div class="flex items-center gap-2">
-          <span class="rounded-full px-2 py-1 text-xs font-semibold uppercase" :class="statusChipClass">
+          <span class="rounded-full px-3 py-1 text-xs font-semibold uppercase" :class="statusChipClass">
             {{ mapCarouselStatus(carousel?.status || 'draft') }}
           </span>
           <button class="btn-secondary" :disabled="regenerating" @click="regenerate">
+            <span v-if="regenerating" class="loader-dot" />
             {{ regenerating ? 'Regenerating...' : 'Regenerate' }}
           </button>
         </div>
       </div>
 
-      <div v-if="generationState !== 'idle'" class="mt-3 inline-flex rounded-full bg-slate/10 px-3 py-1 text-xs font-semibold uppercase text-slate">
-        Generation {{ generationState }}
+      <div v-if="generationState !== 'idle'" class="mt-3 inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase text-slate-700">
+        <span v-if="generationState === 'queued' || generationState === 'running'" class="loader-dot text-amber-500" />
+        <span v-else-if="generationState === 'done'" class="h-2 w-2 rounded-full bg-emerald-500" />
+        <span v-else class="h-2 w-2 rounded-full bg-rose-500" />
+        {{ generationState }}
       </div>
     </div>
 
     <p v-if="loading" class="panel p-4 text-sm text-slate">Loading editor...</p>
-    <p v-else-if="error" class="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{{ error }}</p>
+    <p v-else-if="error" class="rounded-[16px] bg-rose-50 p-3 text-sm text-rose-700">{{ error }}</p>
 
-    <div v-else class="grid gap-4 xl:grid-cols-[1fr_380px]">
+    <div v-else class="grid gap-4 xl:grid-cols-[1fr_390px]">
       <div class="panel p-4">
         <div class="flex items-center justify-between gap-2">
           <button class="btn-secondary" :disabled="!canPrev" @click="currentIndex -= 1">← Prev</button>
-          <p class="text-xs uppercase tracking-[0.2em] text-slate">Slide {{ currentIndex + 1 }} / {{ slides.length }}</p>
+          <p class="meta-label">Slide {{ currentIndex + 1 }} / {{ slides.length }}</p>
           <button class="btn-secondary" :disabled="!canNext" @click="currentIndex += 1">Next →</button>
         </div>
 
         <div class="mt-4 flex justify-center">
           <div
-            class="relative aspect-[4/5] w-full max-w-[520px] overflow-hidden border border-slate/20"
-            :class="design.roundedPreview ? 'rounded-3xl' : 'rounded-lg'"
+            class="relative aspect-[4/5] w-full max-w-[540px] overflow-hidden border border-slate-200/70"
+            :class="design.roundedPreview ? 'rounded-[24px]' : 'rounded-[12px]'"
             :style="slideContainerStyle"
           >
-            <div class="flex h-full w-full flex-col" :style="{ justifyContent: verticalJustify, alignItems: horizontalItems }">
-              <p
-                v-if="design.showHeader"
-                class="mb-3 text-xs uppercase tracking-[0.15em]"
-                :class="design.template === 'Bold' ? 'text-slate-200' : 'text-slate-500'"
+            <div class="flex h-full flex-col rounded-[inherit] bg-white/0">
+              <header
+                class="border-b pb-3"
+                :class="design.template === 'Bold' ? 'border-white/20 text-slate-100' : 'border-slate-300/70 text-slate-600'"
+                v-show="design.showHeader"
               >
-                {{ design.headerText || carousel?.title }}
-              </p>
+                <p class="meta-label !text-current">{{ design.headerText || carousel?.title }}</p>
+              </header>
 
-              <div class="max-w-[95%]">
-                <div
-                  v-if="design.showOrderBadge"
-                  class="mb-3 inline-flex rounded-full px-2 py-1 text-xs font-semibold"
-                  :class="design.template === 'Bold' ? 'bg-white/20 text-white' : 'bg-slate/10 text-slate-700'"
-                >
-                  Slide {{ currentIndex + 1 }}
-                </div>
-                <h2 class="font-display text-[clamp(1.3rem,2.5vw,2.1rem)] leading-tight">{{ currentSlide?.title }}</h2>
-                <p class="mt-3 whitespace-pre-wrap text-[clamp(0.95rem,1.8vw,1.1rem)] leading-relaxed opacity-90">{{ currentSlide?.body }}</p>
-              </div>
+              <main class="flex flex-1" :style="{ justifyContent: justifyMap, alignItems: alignMap }">
+                <article class="w-full max-w-[95%] py-4">
+                  <div
+                    v-if="design.showOrderBadge"
+                    class="mb-3 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold"
+                    :class="design.template === 'Bold' ? 'bg-white/20 text-white' : 'bg-slate-200/70 text-slate-700'"
+                  >
+                    Slide {{ currentIndex + 1 }}
+                  </div>
+                  <h2 class="font-display text-[clamp(1.5rem,2.7vw,2.25rem)] leading-[1.08]">{{ currentSlide?.title }}</h2>
+                  <p class="mt-4 whitespace-pre-wrap text-[clamp(1rem,1.8vw,1.15rem)] leading-relaxed">{{ currentSlide?.body }}</p>
+                </article>
+              </main>
 
-              <p
-                v-if="design.showFooter"
-                class="mt-4 text-sm"
-                :class="design.template === 'Bold' ? 'text-slate-200' : 'text-slate-500'"
+              <footer
+                class="border-t pt-3"
+                :class="design.template === 'Bold' ? 'border-white/20 text-slate-100' : 'border-slate-300/70 text-slate-600'"
+                v-show="design.showFooter"
               >
-                {{ design.footerText || currentSlide?.footer }}
-              </p>
+                <p class="text-sm">{{ design.footerText || currentSlide?.footer }}</p>
+              </footer>
             </div>
           </div>
         </div>
@@ -376,21 +403,22 @@ onMounted(load)
 
         <div v-if="currentSlide" class="mt-3 space-y-3">
           <label class="block">
-            <span class="mb-1 block text-xs uppercase tracking-wide text-slate">Title</span>
-            <input v-model="currentSlide.title" class="field" />
+            <span class="meta-label">Title</span>
+            <input v-model="currentSlide.title" class="field mt-1" />
           </label>
 
           <label class="block">
-            <span class="mb-1 block text-xs uppercase tracking-wide text-slate">Body</span>
-            <textarea v-model="currentSlide.body" class="field min-h-32" />
+            <span class="meta-label">Body</span>
+            <textarea v-model="currentSlide.body" class="field mt-1 min-h-32" />
           </label>
 
           <label class="block">
-            <span class="mb-1 block text-xs uppercase tracking-wide text-slate">Footer</span>
-            <input v-model="currentSlide.footer" class="field" />
+            <span class="meta-label">Footer</span>
+            <input v-model="currentSlide.footer" class="field mt-1" />
           </label>
 
           <button class="btn-primary" :disabled="savingSlide" @click="saveSlide">
+            <span v-if="savingSlide" class="loader-dot" />
             {{ savingSlide ? 'Saving...' : 'Save slide text' }}
           </button>
         </div>
@@ -407,33 +435,53 @@ onMounted(load)
         <button class="btn-secondary" :class="activeSection === 'export' ? '!bg-ink !text-white' : ''" @click="activeSection = 'export'">Export</button>
       </div>
 
-      <div class="mt-3 rounded-xl border border-slate/15 bg-white p-4">
+      <div class="mt-3 rounded-[16px] border border-slate-200/70 bg-white p-4">
         <div v-if="activeSection === 'template'" class="space-y-3">
-          <p class="text-sm text-slate">Choose one of predefined templates.</p>
-          <button class="btn-primary" @click="templateModalOpen = true">Open Template Modal</button>
+          <p class="text-sm text-slate">Select a visual template preset.</p>
+          <div class="grid gap-3 md:grid-cols-3">
+            <button
+              v-for="preset in templatePresets"
+              :key="preset.id"
+              type="button"
+              class="rounded-[16px] border p-3 text-left transition"
+              :class="design.template === preset.id ? 'border-ink bg-ink/5' : 'border-slate-200 hover:border-slate-300'"
+              @click="applyTemplate(preset)"
+            >
+              <div class="h-16 rounded-[12px] border border-slate-200/60 p-2" :style="{ backgroundColor: preset.bg, color: preset.text }">
+                <p class="text-[11px] uppercase tracking-wide opacity-70">Header</p>
+                <p class="font-display text-sm">Title</p>
+              </div>
+              <p class="mt-2 font-display text-xl">{{ preset.title }}</p>
+              <p class="text-xs text-slate">{{ preset.hint }}</p>
+            </button>
+          </div>
+          <button class="btn-secondary" @click="templateModalOpen = true">Open template modal</button>
         </div>
 
-        <div v-else-if="activeSection === 'background'" class="space-y-3">
-          <label class="block">
-            <span class="mb-1 block text-xs uppercase tracking-wide text-slate">Background color</span>
-            <input v-model="design.backgroundColor" type="color" class="h-10 w-20 rounded-md border border-slate/20 p-1" />
-          </label>
+        <div v-else-if="activeSection === 'background'" class="space-y-4">
+          <div class="grid gap-4 md:grid-cols-2">
+            <label class="block">
+              <span class="meta-label">Background color</span>
+              <input v-model="design.backgroundColor" type="color" class="mt-1 h-10 w-20 rounded-[12px] border border-slate-200 p-1" />
+            </label>
 
-          <label class="inline-flex items-center gap-2 text-sm text-slate">
-            <input v-model="design.darkOverlay" type="checkbox" />
-            Dark overlay
-          </label>
+            <label class="block">
+              <span class="meta-label">Overlay intensity: {{ design.darkOverlayOpacity }}%</span>
+              <input v-model.number="design.darkOverlayOpacity" type="range" class="mt-2 w-full" min="0" max="90" step="5" />
+            </label>
+          </div>
 
           <label class="block">
-            <span class="mb-1 block text-xs uppercase tracking-wide text-slate">Background image</span>
-            <input type="file" accept="image/*" class="field" @change="uploadBackground" />
+            <span class="meta-label">Background image</span>
+            <input type="file" accept="image/*" class="field mt-1" @change="uploadBackground" />
           </label>
 
           <button
             class="btn-primary"
             :disabled="savingDesign"
-            @click="saveDesign({ background_color: design.backgroundColor, dark_overlay: design.darkOverlay })"
+            @click="saveDesign({ background_color: design.backgroundColor, dark_overlay: design.darkOverlayOpacity > 0, dark_overlay_opacity: design.darkOverlayOpacity / 100 })"
           >
+            <span v-if="savingDesign" class="loader-dot" />
             {{ savingDesign ? 'Saving...' : 'Save background settings' }}
           </button>
         </div>
@@ -449,13 +497,13 @@ onMounted(load)
           </label>
 
           <label class="block">
-            <span class="mb-1 block text-xs uppercase tracking-wide text-slate">Header text</span>
-            <input v-model="design.headerText" class="field" />
+            <span class="meta-label">Header text</span>
+            <input v-model="design.headerText" class="field mt-1" />
           </label>
 
           <label class="block">
-            <span class="mb-1 block text-xs uppercase tracking-wide text-slate">Footer text</span>
-            <input v-model="design.footerText" class="field" />
+            <span class="meta-label">Footer text</span>
+            <input v-model="design.footerText" class="field mt-1" />
           </label>
 
           <button
@@ -463,19 +511,20 @@ onMounted(load)
             :disabled="savingDesign"
             @click="saveDesign({ show_header: design.showHeader, show_footer: design.showFooter, header_text: design.headerText, footer_text: design.footerText })"
           >
+            <span v-if="savingDesign" class="loader-dot" />
             {{ savingDesign ? 'Saving...' : 'Save text settings' }}
           </button>
         </div>
 
         <div v-else-if="activeSection === 'layout'" class="space-y-3">
           <label class="block">
-            <span class="mb-1 block text-xs uppercase tracking-wide text-slate">Content padding: {{ design.contentPadding }}px</span>
-            <input v-model.number="design.contentPadding" class="w-full" type="range" min="0" max="180" step="2" />
+            <span class="meta-label">Content padding: {{ design.contentPadding }}px</span>
+            <input v-model.number="design.contentPadding" class="mt-2 w-full" type="range" min="0" max="180" step="2" />
           </label>
 
           <label class="block">
-            <span class="mb-1 block text-xs uppercase tracking-wide text-slate">Horizontal alignment</span>
-            <select v-model="design.horizontalAlignment" class="field">
+            <span class="meta-label">Horizontal alignment</span>
+            <select v-model="design.horizontalAlignment" class="field mt-1">
               <option value="left">Left</option>
               <option value="center">Center</option>
               <option value="right">Right</option>
@@ -483,8 +532,8 @@ onMounted(load)
           </label>
 
           <label class="block">
-            <span class="mb-1 block text-xs uppercase tracking-wide text-slate">Vertical alignment</span>
-            <select v-model="design.verticalAlignment" class="field">
+            <span class="meta-label">Vertical alignment</span>
+            <select v-model="design.verticalAlignment" class="field mt-1">
               <option value="top">Top</option>
               <option value="center">Center</option>
               <option value="bottom">Bottom</option>
@@ -496,6 +545,7 @@ onMounted(load)
             :disabled="savingDesign"
             @click="saveDesign({ content_padding: design.contentPadding, horizontal_alignment: design.horizontalAlignment, vertical_alignment: design.verticalAlignment })"
           >
+            <span v-if="savingDesign" class="loader-dot" />
             {{ savingDesign ? 'Saving...' : 'Save layout settings' }}
           </button>
         </div>
@@ -503,11 +553,11 @@ onMounted(load)
         <div v-else-if="activeSection === 'additional'" class="space-y-3">
           <label class="inline-flex items-center gap-2 text-sm text-slate">
             <input v-model="design.showOrderBadge" type="checkbox" />
-            Show slide order badge
+            Show slide number badge
           </label>
           <label class="inline-flex items-center gap-2 text-sm text-slate">
             <input v-model="design.roundedPreview" type="checkbox" />
-            Rounded preview card
+            Rounded preview
           </label>
 
           <button
@@ -515,23 +565,26 @@ onMounted(load)
             :disabled="savingDesign"
             @click="saveDesign({ additional: { show_order_badge: design.showOrderBadge, rounded_preview: design.roundedPreview } })"
           >
+            <span v-if="savingDesign" class="loader-dot" />
             {{ savingDesign ? 'Saving...' : 'Save additional settings' }}
           </button>
         </div>
 
         <div v-else class="space-y-3">
-          <p class="text-sm text-slate">Export carousel into 1080x1350 PNG ZIP package.</p>
+          <p class="text-sm text-slate">Export carousel as 1080x1350 PNG ZIP.</p>
           <button class="btn-primary" :disabled="exporting" @click="exportZip">
+            <span v-if="exporting" class="loader-dot" />
             {{ exporting ? 'Exporting...' : 'Export ZIP' }}
           </button>
+          <p v-if="exportState !== 'idle'" class="text-xs font-semibold uppercase text-slate">{{ exportStatusText }}</p>
         </div>
       </div>
     </div>
 
-    <p v-if="message" class="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-700">{{ message }}</p>
+    <p v-if="message" class="rounded-[16px] bg-emerald-50 p-3 text-sm text-emerald-700">{{ message }}</p>
 
     <div v-if="templateModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4">
-      <div class="w-full max-w-xl rounded-2xl bg-white p-5 shadow-2xl">
+      <div class="w-full max-w-xl rounded-[16px] bg-white p-5 shadow-[var(--shadow-card)]">
         <div class="flex items-center justify-between gap-3">
           <h3 class="font-display text-2xl">Template Presets</h3>
           <button class="btn-secondary" @click="templateModalOpen = false">Close</button>
@@ -546,10 +599,13 @@ onMounted(load)
           <button
             v-for="preset in templatePresets"
             :key="preset.id"
-            class="rounded-xl border border-slate/20 p-4 text-left transition hover:border-ink"
+            class="rounded-[16px] border border-slate-200 p-4 text-left transition hover:border-ink"
             @click="applyTemplate(preset)"
           >
-            <div class="mb-2 h-16 rounded-lg border border-slate/15" :style="{ backgroundColor: preset.bg }" />
+            <div class="mb-2 h-16 rounded-[12px] border border-slate-200/70 p-2" :style="{ backgroundColor: preset.bg, color: preset.text }">
+              <p class="text-[11px] uppercase tracking-wide opacity-70">Header</p>
+              <p class="font-display text-sm">Slide title</p>
+            </div>
             <p class="font-display text-xl">{{ preset.title }}</p>
             <p class="text-xs text-slate">{{ preset.hint }}</p>
           </button>

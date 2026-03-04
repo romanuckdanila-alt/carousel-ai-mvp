@@ -15,7 +15,6 @@ const generationState = ref<"idle" | "queued" | "running" | "done" | "failed">("
 
 const carouselId = computed(() => String(route.params.id))
 const currentSlide = computed(() => slides.value[index.value] || null)
-
 const canPrev = computed(() => index.value > 0)
 const canNext = computed(() => index.value < slides.value.length - 1)
 
@@ -69,25 +68,29 @@ onMounted(load)
 </script>
 
 <template>
-  <section class="space-y-5">
-    <div class="panel p-5">
+  <section class="space-y-6">
+    <div class="panel p-6">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p class="text-xs uppercase tracking-[0.2em] text-slate">Step 3</p>
-          <h1 class="font-display text-3xl">Slides Preview</h1>
-          <p class="text-sm text-slate">Review generated slides before opening the full editor.</p>
+          <p class="meta-label">Step 3</p>
+          <h1 class="font-display text-3xl md:text-4xl">Preview</h1>
+          <p class="mt-1 text-sm text-slate">{{ carousel?.title || 'Generated carousel preview' }}</p>
         </div>
 
-        <div class="flex gap-2">
+        <div class="flex flex-wrap gap-2">
           <button class="btn-secondary" :disabled="regenerating" @click="regenerate">
+            <span v-if="regenerating" class="loader-dot" />
             {{ regenerating ? 'Regenerating...' : 'Regenerate' }}
           </button>
-          <NuxtLink :to="`/editor/${carouselId}`" class="btn-primary">Open editor</NuxtLink>
+          <NuxtLink :to="`/editor/${carouselId}`" class="btn-primary">Open in Editor</NuxtLink>
         </div>
       </div>
 
-      <div v-if="generationState !== 'idle'" class="mt-4 inline-flex rounded-full bg-slate/10 px-3 py-1 text-xs font-semibold uppercase text-slate">
-        Generation {{ generationState }}
+      <div v-if="generationState !== 'idle'" class="mt-4 inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase text-slate-700">
+        <span v-if="generationState === 'queued' || generationState === 'running'" class="loader-dot text-amber-500" />
+        <span v-else-if="generationState === 'done'" class="h-2 w-2 rounded-full bg-emerald-500" />
+        <span v-else class="h-2 w-2 rounded-full bg-rose-500" />
+        {{ generationState }}
       </div>
     </div>
 
@@ -98,33 +101,47 @@ onMounted(load)
       <div class="panel p-4">
         <div class="flex items-center justify-between">
           <button class="btn-secondary" :disabled="!canPrev" @click="index -= 1">←</button>
-          <p class="text-xs uppercase tracking-[0.2em] text-slate">Slide {{ index + 1 }} / {{ slides.length }}</p>
+          <p class="meta-label">Slide {{ index + 1 }} / {{ slides.length }}</p>
           <button class="btn-secondary" :disabled="!canNext" @click="index += 1">→</button>
         </div>
 
-        <div class="mt-4 overflow-x-auto pb-1">
+        <div class="mt-4 overflow-x-auto pb-2">
           <div class="flex min-w-max gap-3">
             <button
               v-for="(slide, i) in slides"
               :key="slide.id"
               type="button"
-              class="w-72 shrink-0 rounded-xl border p-4 text-left"
-              :class="i === index ? 'border-ink bg-white' : 'border-slate/20 bg-slate/5'"
+              class="w-72 shrink-0 rounded-[16px] border p-4 text-left transition"
+              :class="i === index ? 'scale-[1.01] border-ink bg-white shadow-[var(--shadow-card)]' : 'border-slate-200 bg-white hover:border-slate-300'"
               @click="index = i"
             >
-              <p class="text-xs uppercase text-slate">{{ i + 1 }}</p>
+              <p class="meta-label">{{ i + 1 }}</p>
               <h3 class="mt-2 font-display text-xl leading-tight">{{ slide.title }}</h3>
-              <p class="mt-2 max-h-24 overflow-hidden text-sm text-slate">{{ slide.body }}</p>
+              <p class="mt-2 max-h-24 overflow-hidden text-sm leading-relaxed text-slate">{{ slide.body }}</p>
             </button>
           </div>
         </div>
       </div>
 
-      <article v-if="currentSlide" class="panel p-6">
-        <p class="text-xs uppercase tracking-[0.2em] text-slate">Current slide</p>
-        <h2 class="mt-2 font-display text-4xl leading-tight">{{ currentSlide.title }}</h2>
-        <p class="mt-3 max-w-2xl text-lg text-slate">{{ currentSlide.body }}</p>
-      </article>
+      <transition name="fade" mode="out-in">
+        <article v-if="currentSlide" :key="currentSlide.id" class="panel p-6">
+          <p class="meta-label">Current slide</p>
+          <h2 class="mt-2 font-display text-4xl leading-tight">{{ currentSlide.title }}</h2>
+          <p class="mt-3 max-w-2xl text-lg leading-relaxed text-slate">{{ currentSlide.body }}</p>
+        </article>
+      </transition>
     </div>
   </section>
 </template>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>

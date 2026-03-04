@@ -1,30 +1,67 @@
 # carousel-ai MVP
 
-## Architecture
-- `frontend/`: Nuxt 3 (Vue 3) + Tailwind UI for carousel list, creation, and slide editor.
-- `backend/`: FastAPI app with SQLAlchemy models and REST endpoints.
-- `postgres`: stores carousels, slides, generations, and exports.
-- `minio`: S3-compatible storage for uploaded assets and exported ZIP files.
-- `OpenRouter` via OpenAI Python SDK: primary LLM provider for generation.
-- `Playwright`: renders 1080x1350 slide PNG files, zips them, uploads to MinIO.
+## Project description
+`carousel-ai` is an MVP that generates editable Instagram carousels from text (and video/link sources), lets users tune design settings, and exports slides as a ZIP of PNG images.
 
-## Run
+## Architecture
+- `frontend/`: Nuxt 3 + Tailwind app with pages for My Carousels, Create, Preview, and Editor.
+- `backend/`: FastAPI + SQLAlchemy API for carousels, slides, generation jobs, design updates, exports, and asset upload.
+- `postgres`: primary relational database for carousel data.
+- `minio`: S3-compatible storage for uploaded assets and generated ZIP exports.
+- `OpenRouter` (via OpenAI SDK): LLM generation provider.
+- `Playwright`: server-side rendering of 1080x1350 slide PNG images before zipping.
+
+## Stack
+- FastAPI
+- Nuxt 3
+- PostgreSQL
+- MinIO
+- Docker Compose
+
+## Setup
 ```bash
 docker compose up --build
 ```
 
-Environment variables (`.env`):
+Open:
+- `http://localhost:3000` (frontend)
+- `http://localhost:8000` (backend)
+
+Environment variables:
 ```bash
 OPENROUTER_API_KEY=YOUR_KEY
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 OPENROUTER_MODEL=openai/gpt-4o-mini
+
+DATABASE_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/carousel_ai
+
+MINIO_ENDPOINT=minio:9000
+MINIO_PUBLIC_ENDPOINT=localhost:9000
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin
+MINIO_SECURE=false
 ```
 
-Service URLs:
-- Frontend: `http://localhost:3000`
-- Backend: `http://localhost:8000`
-- MinIO API: `http://localhost:9000`
-- MinIO Console: `http://localhost:9001`
+## Demo flow
+1. Create carousel
+2. Generate slides
+3. Preview
+4. Edit
+5. Export ZIP
+
+## API endpoints
+- `GET /health`
+- `GET /carousels`
+- `POST /carousels`
+- `GET /carousels/{id}`
+- `GET /carousels/{id}/slides`
+- `PATCH /carousels/{id}/slides/{slide_id}`
+- `PATCH /carousels/{id}/design`
+- `POST /generations`
+- `GET /generations/{id}`
+- `POST /exports`
+- `GET /exports/{id}`
+- `POST /assets/upload`
 
 ## API examples
 Health:
@@ -46,63 +83,59 @@ curl -X POST http://localhost:8000/carousels \
   }'
 ```
 
-Generate slides:
+Start generation:
 ```bash
 curl -X POST http://localhost:8000/generations \
   -H "Content-Type: application/json" \
   -d '{"carousel_id":"<CAROUSEL_ID>"}'
 ```
-`/generations` runs asynchronously (background task). Poll generation status:
+
+Poll generation:
 ```bash
 curl http://localhost:8000/generations/<GENERATION_ID>
 ```
 
-Update design settings:
+Patch design:
 ```bash
 curl -X PATCH http://localhost:8000/carousels/<CAROUSEL_ID>/design \
   -H "Content-Type: application/json" \
   -d '{"template":"Classic","background_color":"#ffffff","show_header":true}'
 ```
 
-Update slide:
+Patch slide:
 ```bash
 curl -X PATCH http://localhost:8000/carousels/<CAROUSEL_ID>/slides/<SLIDE_ID> \
   -H "Content-Type: application/json" \
   -d '{"title":"Updated title","body":"Updated body","footer":"Updated footer"}'
 ```
 
-Export ZIP:
+Export:
 ```bash
 curl -X POST http://localhost:8000/exports \
   -H "Content-Type: application/json" \
   -d '{"carousel_id":"<CAROUSEL_ID>"}'
 ```
 
-Upload asset:
+Upload image:
 ```bash
 curl -X POST http://localhost:8000/assets/upload \
   -F "file=@/path/to/file.png"
 ```
 
 ## Tools used
-- Codex
+- Cursor
 - ChatGPT
-- FastAPI
-- Nuxt 3
-- PostgreSQL
-- MinIO
-- Playwright
-- OpenRouter
+- Codex
 
 ## LLM provider
-- OpenRouter (`https://openrouter.ai/api/v1/chat/completions`)
-- Default model: `openai/gpt-4o-mini`
+- OpenRouter endpoint: `https://openrouter.ai/api/v1/chat/completions`
+- Primary model: `openai/gpt-4o-mini`
 
 ## Estimated token usage
-- Typical generation request: ~1,000-1,800 input tokens.
-- Typical generation response for 6-10 slides: ~350-1,200 output tokens.
-- Per carousel generation estimate: ~1,400-3,000 total tokens.
+- Input prompt: ~900-1,700 tokens per generation
+- Output for 6-10 slides: ~350-1,200 tokens
+- Total per generation: ~1,250-2,900 tokens
 
-## Time spent
-- Initial MVP: ~9 hours.
-- UI/flow alignment iteration: ~5 hours.
+## Estimated development time
+- MVP baseline: ~9 hours
+- UI/flow polish and design alignment: ~5 hours
