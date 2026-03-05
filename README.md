@@ -252,3 +252,91 @@ This allowed faster iteration and easier extension of the editor features (templ
 The overall interaction model and screen structure follow the Figma reference, while the visual styling was simplified to keep the MVP implementation focused on functionality and maintainability.
 
 If required, the UI can be aligned closer to the original Figma layout with pixel-perfect adjustments.
+
+## API Examples
+### Create carousel
+```bash
+curl -X POST http://localhost:8000/carousels \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Demo Carousel",
+    "source_type": "text",
+    "source_payload": {"text": "Example post text"},
+    "slides_count": 6,
+    "language": "EN"
+  }'
+```
+
+### List carousels
+```bash
+curl http://localhost:8000/carousels
+```
+
+### Generate slides
+```bash
+curl -X POST http://localhost:8000/generations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "carousel_id": "<carousel_id>"
+  }'
+```
+
+### Export carousel
+```bash
+curl -X POST http://localhost:8000/exports \
+  -H "Content-Type: application/json" \
+  -d '{
+    "carousel_id": "<carousel_id>"
+  }'
+```
+
+## Architecture
+Backend:
+- FastAPI
+- PostgreSQL
+- MinIO (S3-compatible storage)
+
+Frontend:
+- Nuxt 3
+- Vue
+- TailwindCSS
+
+Infrastructure:
+- Docker
+- docker-compose
+
+Key modules:
+
+`backend/`
+- `app/`
+- `models`
+- `services`
+- `routes`
+
+`frontend/`
+- `pages`
+- `composables`
+- `assets`
+
+## Development Notes
+Development time:
+~7–9 hours to implement the MVP.
+
+Tools used:
+- Codex
+- ChatGPT
+
+## LLM Integration
+Provider:
+OpenRouter
+
+Model:
+GPT-class model
+
+Purpose:
+Generate carousel slide structure (title, body, footer).
+
+Average generation cost:
+approximately $0.01–$0.02 per carousel depending on token usage.
+
+Generation is asynchronous and usually takes 5–15 seconds depending on the LLM response time.
