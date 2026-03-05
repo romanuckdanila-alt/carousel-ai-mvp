@@ -13,10 +13,10 @@ const deleteDialogCarouselId = ref<string | null>(null)
 const deletingId = ref<string | null>(null)
 
 const statusClass = (status: string) => {
-  if (status === "ready") return "bg-emerald-100 text-emerald-700"
-  if (status === "generating") return "bg-amber-100 text-amber-800"
-  if (status === "failed") return "bg-rose-100 text-rose-700"
-  return "bg-slate-100 text-slate-600"
+  if (status === "ready") return "border-emerald-200 bg-emerald-50 text-emerald-700"
+  if (status === "generating") return "border-amber-200 bg-amber-50 text-amber-700"
+  if (status === "failed") return "border-rose-200 bg-rose-50 text-rose-700"
+  return "border-slate-200 bg-slate-50 text-slate-600"
 }
 
 const statusDotClass = (status: string) => {
@@ -111,8 +111,8 @@ onMounted(load)
 
     <p v-if="error" class="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{{ error }}</p>
 
-    <div v-if="loading" :class="viewMode === 'grid' ? 'grid gap-4 md:grid-cols-2 xl:grid-cols-3' : 'grid gap-3'">
-      <article v-for="i in 6" :key="`s-${i}`" class="panel overflow-hidden p-4">
+    <div v-if="loading" :class="viewMode === 'grid' ? 'grid gap-6 md:grid-cols-2 xl:grid-cols-3' : 'grid gap-3'">
+      <article v-for="i in 6" :key="`s-${i}`" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div class="skeleton h-36 w-full" />
         <div class="mt-4 space-y-2">
           <div class="skeleton h-6 w-2/3" />
@@ -133,16 +133,21 @@ onMounted(load)
       <NuxtLink to="/create" class="btn-primary mt-6 px-8 py-3 text-base">Create</NuxtLink>
     </div>
 
-    <div v-else :class="viewMode === 'grid' ? 'grid items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3' : 'grid items-start gap-3'">
+    <div
+      v-else
+      :class="viewMode === 'grid'
+        ? 'grid items-stretch gap-6 md:grid-cols-2 xl:grid-cols-3'
+        : 'grid divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white'"
+    >
       <article
         v-for="carousel in carousels"
         :key="carousel.id"
-        class="panel slide-card flex flex-col overflow-hidden border border-slate-200/70"
-        :class="viewMode === 'grid' ? 'h-full' : 'h-auto'"
+        class="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
+        :class="viewMode === 'grid' ? 'h-full' : 'h-auto border-0 rounded-none shadow-none hover:shadow-none'"
       >
-        <div class="relative border-b border-slate-200/70 bg-white p-4">
+        <div class="relative border-b border-slate-200/70 bg-white p-6">
           <div class="flex items-center justify-between gap-2">
-            <div class="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-semibold" :class="statusClass(mapCarouselStatus(carousel.status))">
+            <div class="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold" :class="statusClass(mapCarouselStatus(carousel.status))">
               <span class="h-2 w-2 rounded-full" :class="statusDotClass(mapCarouselStatus(carousel.status))" />
               {{ mapCarouselStatus(carousel.status) }}
             </div>
@@ -151,9 +156,9 @@ onMounted(load)
 
           <div class="mt-3 min-h-32 rounded-xl border border-slate-200/70 bg-slate-50 p-3">
             <template v-if="previews[carousel.id]">
-              <p class="meta-label">First slide</p>
-              <h3 class="mt-1 line-clamp-2 font-display text-lg font-medium leading-snug text-slate-900">{{ previews[carousel.id]?.title }}</h3>
-              <p class="body-copy mt-2 line-clamp-3">{{ previews[carousel.id]?.body }}</p>
+              <p class="text-xs uppercase tracking-wide text-slate-500">First slide</p>
+              <h3 class="mt-1 line-clamp-2 text-lg font-semibold tracking-tight text-slate-900">{{ previews[carousel.id]?.title }}</h3>
+              <p class="mt-2 line-clamp-3 text-sm leading-relaxed text-slate-600">{{ previews[carousel.id]?.body }}</p>
             </template>
             <div v-else class="flex h-full min-h-24 items-center justify-center rounded-lg border border-dashed border-slate-300 text-sm text-slate">
               No slide preview
@@ -161,29 +166,29 @@ onMounted(load)
           </div>
         </div>
 
-        <div class="flex flex-1 flex-col gap-4 p-4">
-          <h2 class="card-title line-clamp-2 font-display">{{ carousel.title }}</h2>
+        <div class="flex flex-1 flex-col space-y-4 p-6">
+          <h2 class="line-clamp-2 text-lg font-semibold tracking-tight text-slate-900">{{ carousel.title }}</h2>
 
           <div class="grid grid-cols-3 gap-2">
             <div class="rounded-xl bg-slate-50 p-2">
-              <p class="meta-label">Slides</p>
+              <p class="text-xs uppercase tracking-wide text-slate-500">Slides</p>
               <p class="text-base font-semibold text-slate-900">{{ carousel.slides_count }}</p>
             </div>
             <div class="rounded-xl bg-slate-50 p-2">
-              <p class="meta-label">Language</p>
+              <p class="text-xs uppercase tracking-wide text-slate-500">Language</p>
               <p class="text-base font-semibold text-slate-900">{{ carousel.language }}</p>
             </div>
             <div class="rounded-xl bg-slate-50 p-2">
-              <p class="meta-label">Source</p>
+              <p class="text-xs uppercase tracking-wide text-slate-500">Source</p>
               <p class="text-base font-semibold text-slate-900">{{ carousel.source_type }}</p>
             </div>
           </div>
 
           <div class="mt-auto flex flex-wrap gap-2 pt-1">
-            <NuxtLink :to="`/preview/${carousel.id}`" class="btn-secondary">Open</NuxtLink>
-            <NuxtLink :to="`/editor/${carousel.id}`" class="btn-primary">Continue editing</NuxtLink>
+            <NuxtLink :to="`/preview/${carousel.id}`" class="btn-secondary !px-3 !py-1.5">Open</NuxtLink>
+            <NuxtLink :to="`/editor/${carousel.id}`" class="btn-primary !px-3 !py-1.5">Continue editing</NuxtLink>
             <button
-              class="btn-secondary !border-rose-200 !text-rose-700 hover:!bg-rose-50"
+              class="btn-secondary !border-rose-200 !px-3 !py-1.5 !text-rose-700 hover:!bg-rose-50"
               :disabled="Boolean(deletingId)"
               @click="openDeleteDialog(carousel.id)"
             >

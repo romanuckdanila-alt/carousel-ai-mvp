@@ -433,18 +433,55 @@ onMounted(load)
       </aside>
     </div>
 
-    <div class="panel p-3">
-      <div class="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
-        <button class="btn-secondary" :class="activeSection === 'template' ? '!bg-ink !text-white' : ''" @click="activeSection = 'template'">Template</button>
-        <button class="btn-secondary" :class="activeSection === 'background' ? '!bg-ink !text-white' : ''" @click="activeSection = 'background'">Background</button>
-        <button class="btn-secondary" :class="activeSection === 'text' ? '!bg-ink !text-white' : ''" @click="activeSection = 'text'">Text</button>
-        <button class="btn-secondary" :class="activeSection === 'layout' ? '!bg-ink !text-white' : ''" @click="activeSection = 'layout'">Layout</button>
-        <button class="btn-secondary" :class="activeSection === 'additional' ? '!bg-ink !text-white' : ''" @click="activeSection = 'additional'">Additional</button>
-        <button class="btn-secondary" :class="activeSection === 'export' ? '!bg-ink !text-white' : ''" @click="activeSection = 'export'">Export</button>
+    <div class="panel p-4">
+      <div class="flex flex-wrap items-center gap-2">
+        <button
+          class="flex items-center rounded-xl px-4 py-2 text-sm font-medium transition"
+          :class="activeSection === 'template' ? 'bg-ink text-white' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'"
+          @click="activeSection = 'template'"
+        >
+          Template
+        </button>
+        <button
+          class="flex items-center rounded-xl px-4 py-2 text-sm font-medium transition"
+          :class="activeSection === 'background' ? 'bg-ink text-white' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'"
+          @click="activeSection = 'background'"
+        >
+          Background
+        </button>
+        <button
+          class="flex items-center rounded-xl px-4 py-2 text-sm font-medium transition"
+          :class="activeSection === 'text' ? 'bg-ink text-white' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'"
+          @click="activeSection = 'text'"
+        >
+          Text
+        </button>
+        <button
+          class="flex items-center rounded-xl px-4 py-2 text-sm font-medium transition"
+          :class="activeSection === 'layout' ? 'bg-ink text-white' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'"
+          @click="activeSection = 'layout'"
+        >
+          Layout
+        </button>
+        <button
+          class="flex items-center rounded-xl px-4 py-2 text-sm font-medium transition"
+          :class="activeSection === 'additional' ? 'bg-ink text-white' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'"
+          @click="activeSection = 'additional'"
+        >
+          Additional
+        </button>
+        <button
+          class="flex items-center rounded-xl px-4 py-2 text-sm font-medium transition"
+          :class="activeSection === 'export' ? 'bg-ink text-white' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'"
+          @click="activeSection = 'export'"
+        >
+          Export
+        </button>
       </div>
 
-      <div class="mt-4 rounded-[16px] border border-slate-200/70 bg-white p-4">
-        <div v-if="activeSection === 'template'" class="space-y-3">
+      <div class="mt-4 rounded-xl border border-slate-200 bg-white p-5">
+        <div v-if="activeSection === 'template'" class="space-y-4">
+          <p class="mb-3 text-sm font-semibold text-slate-700">Template settings</p>
           <p class="meta-copy max-w-prose">Select a visual template preset.</p>
           <div class="grid gap-3 md:grid-cols-3">
             <button
@@ -467,6 +504,7 @@ onMounted(load)
         </div>
 
         <div v-else-if="activeSection === 'background'" class="space-y-4">
+          <p class="mb-3 text-sm font-semibold text-slate-700">Background settings</p>
           <div class="grid gap-4 md:grid-cols-2">
             <label class="block">
               <span class="form-label">Background color</span>
@@ -494,7 +532,8 @@ onMounted(load)
           </button>
         </div>
 
-        <div v-else-if="activeSection === 'text'" class="space-y-3">
+        <div v-else-if="activeSection === 'text'" class="space-y-4">
+          <p class="mb-3 text-sm font-semibold text-slate-700">Text settings</p>
           <label class="inline-flex items-center gap-2 text-sm text-slate-700">
             <input v-model="design.showHeader" type="checkbox" />
             Show header
@@ -524,7 +563,8 @@ onMounted(load)
           </button>
         </div>
 
-        <div v-else-if="activeSection === 'layout'" class="space-y-3">
+        <div v-else-if="activeSection === 'layout'" class="space-y-4">
+          <p class="mb-3 text-sm font-semibold text-slate-700">Layout settings</p>
           <label class="block">
             <span class="form-label">Content padding: {{ clampedPadding }}px</span>
             <input v-model.number="design.contentPadding" class="mt-2 w-full" type="range" min="16" max="72" step="2" />
@@ -558,7 +598,8 @@ onMounted(load)
           </button>
         </div>
 
-        <div v-else-if="activeSection === 'additional'" class="space-y-3">
+        <div v-else-if="activeSection === 'additional'" class="space-y-4">
+          <p class="mb-3 text-sm font-semibold text-slate-700">Additional options</p>
           <label class="inline-flex items-center gap-2 text-sm text-slate-700">
             <input v-model="design.showOrderBadge" type="checkbox" />
             Show slide number badge
@@ -578,7 +619,8 @@ onMounted(load)
           </button>
         </div>
 
-        <div v-else class="space-y-3">
+        <div v-else class="space-y-4">
+          <p class="mb-3 text-sm font-semibold text-slate-700">Export</p>
           <p class="meta-copy max-w-prose">Export carousel as 1080x1350 PNG ZIP.</p>
           <button class="btn-primary" :disabled="exporting" @click="exportZip">
             <span v-if="exporting" class="loader-dot" />
