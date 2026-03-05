@@ -93,10 +93,10 @@ onMounted(load)
   <section class="space-y-6">
     <div class="panel p-6">
       <div class="flex flex-wrap items-center justify-between gap-3">
-        <div>
+        <div class="space-y-1">
           <p class="meta-label">Step 3</p>
-          <h1 class="font-display text-3xl md:text-4xl">Preview</h1>
-          <p class="mt-1 text-sm text-slate">{{ carousel?.title || 'Generated carousel preview' }}</p>
+          <h1 class="page-title font-display">Preview</h1>
+          <p class="body-copy max-w-[65ch]">{{ carousel?.title || 'Generated carousel preview' }}</p>
         </div>
 
         <div class="flex flex-wrap gap-2">
@@ -251,7 +251,7 @@ onMounted(load)
 .slide-body {
   margin: 0;
   font-size: clamp(1.04rem, 1.9vw, 1.25rem);
-  line-height: 1.6;
+  line-height: 1.65;
   color: #334e68;
   white-space: pre-wrap;
 }
@@ -317,8 +317,8 @@ onMounted(load)
 
 .thumb-body {
   margin: 0;
-  font-size: 0.82rem;
-  line-height: 1.4;
+  font-size: 0.9rem;
+  line-height: 1.5;
   color: #627d98;
   overflow: hidden;
   display: -webkit-box;

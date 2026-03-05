@@ -76,6 +76,7 @@ const carouselId = computed(() => String(route.params.id))
 const currentSlide = computed(() => slides.value[currentIndex.value] || null)
 const canPrev = computed(() => currentIndex.value > 0)
 const canNext = computed(() => currentIndex.value < slides.value.length - 1)
+const clampedPadding = computed(() => Math.max(16, Math.min(design.contentPadding, 72)))
 
 const justifyMap = computed(() => {
   if (design.verticalAlignment === "top") return "flex-start"
@@ -83,11 +84,16 @@ const justifyMap = computed(() => {
   return "center"
 })
 
-const alignMap = computed(() => {
+const alignSelfMap = computed(() => {
   if (design.horizontalAlignment === "left") return "flex-start"
   if (design.horizontalAlignment === "right") return "flex-end"
-  return "center"
+  return "stretch"
 })
+
+const articleStyle = computed(() => ({
+  alignSelf: alignSelfMap.value,
+  width: design.horizontalAlignment === "center" ? "100%" : "100%",
+}))
 
 const slideContainerStyle = computed(() => {
   const textColor = design.template === "Bold" ? "#f8fafc" : "#102a43"
@@ -109,7 +115,7 @@ const slideContainerStyle = computed(() => {
     backgroundSize: "cover",
     backgroundPosition: "center",
     color: textColor,
-    padding: `${design.contentPadding}px`,
+    padding: `${clampedPadding.value}px`,
     textAlign: design.horizontalAlignment
   }
 })
@@ -140,7 +146,7 @@ const hydrateDesign = () => {
   design.showFooter = raw.show_footer ?? true
   design.headerText = raw.header_text || (carousel.value?.title || "")
   design.footerText = raw.footer_text || ""
-  design.contentPadding = raw.content_padding ?? 48
+  design.contentPadding = Math.max(16, Math.min(raw.content_padding ?? 48, 72))
   design.horizontalAlignment = (raw.horizontal_alignment as any) || "left"
   design.verticalAlignment = (raw.vertical_alignment as any) || "center"
 
@@ -318,13 +324,13 @@ onMounted(load)
 </script>
 
 <template>
-  <section class="space-y-5">
+  <section class="space-y-6">
     <div class="panel p-5">
       <div class="flex flex-wrap items-center justify-between gap-3">
-        <div>
+        <div class="space-y-1">
           <p class="meta-label">Step 4</p>
-          <h1 class="font-display text-3xl md:text-4xl">Carousel Editor</h1>
-          <p class="mt-1 text-sm text-slate">{{ carousel?.title || 'Loading...' }}</p>
+          <h1 class="page-title font-display">Carousel Editor</h1>
+          <p class="body-copy max-w-[65ch]">{{ carousel?.title || 'Loading...' }}</p>
         </div>
 
         <div class="flex items-center gap-2">
@@ -373,8 +379,8 @@ onMounted(load)
                 <p class="meta-label !text-current">{{ design.headerText || carousel?.title }}</p>
               </header>
 
-              <main class="flex flex-1" :style="{ justifyContent: justifyMap, alignItems: alignMap }">
-                <article class="w-full max-w-[96%] py-4">
+              <main class="flex min-h-0 flex-1 flex-col" :style="{ justifyContent: justifyMap }">
+                <article class="w-full max-w-[96%] py-4" :style="articleStyle">
                   <div
                     v-if="design.showOrderBadge"
                     class="mb-3 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold"
@@ -382,8 +388,8 @@ onMounted(load)
                   >
                     Slide {{ currentIndex + 1 }}
                   </div>
-                  <h2 class="font-display text-[clamp(1.5rem,2.7vw,2.25rem)] leading-[1.08]">{{ currentSlide?.title }}</h2>
-                  <p class="mt-4 whitespace-pre-wrap text-[clamp(1rem,1.8vw,1.15rem)] leading-relaxed">{{ currentSlide?.body }}</p>
+                  <h2 class="editor-title font-display text-[clamp(1.65rem,2.8vw,2.3rem)] leading-[1.08]">{{ currentSlide?.title }}</h2>
+                  <p class="editor-body mt-4 whitespace-pre-wrap text-[clamp(1rem,1.8vw,1.15rem)] leading-[1.65]">{{ currentSlide?.body }}</p>
                 </article>
               </main>
 
@@ -401,22 +407,22 @@ onMounted(load)
       </div>
 
       <aside class="panel p-4">
-        <h2 class="font-display text-xl">Slide Text</h2>
+        <h2 class="section-title font-display">Slide Text</h2>
 
-        <div v-if="currentSlide" class="mt-3 space-y-3">
+        <div v-if="currentSlide" class="mt-4 space-y-4">
           <label class="block">
-            <span class="meta-label">Title</span>
-            <input v-model="currentSlide.title" class="field mt-1" />
+            <span class="form-label">Title</span>
+            <input v-model="currentSlide.title" class="field" />
           </label>
 
           <label class="block">
-            <span class="meta-label">Body</span>
-            <textarea v-model="currentSlide.body" class="field mt-1 min-h-32" />
+            <span class="form-label">Body</span>
+            <textarea v-model="currentSlide.body" class="field min-h-32" />
           </label>
 
           <label class="block">
-            <span class="meta-label">Footer</span>
-            <input v-model="currentSlide.footer" class="field mt-1" />
+            <span class="form-label">Footer</span>
+            <input v-model="currentSlide.footer" class="field" />
           </label>
 
           <button class="btn-primary" :disabled="savingSlide" @click="saveSlide">
@@ -437,9 +443,9 @@ onMounted(load)
         <button class="btn-secondary" :class="activeSection === 'export' ? '!bg-ink !text-white' : ''" @click="activeSection = 'export'">Export</button>
       </div>
 
-      <div class="mt-3 rounded-[16px] border border-slate-200/70 bg-white p-4">
+      <div class="mt-4 rounded-[16px] border border-slate-200/70 bg-white p-4">
         <div v-if="activeSection === 'template'" class="space-y-3">
-          <p class="text-sm text-slate">Select a visual template preset.</p>
+          <p class="meta-copy max-w-prose">Select a visual template preset.</p>
           <div class="grid gap-3 md:grid-cols-3">
             <button
               v-for="preset in templatePresets"
@@ -454,7 +460,7 @@ onMounted(load)
                 <p class="font-display text-sm">Title</p>
               </div>
               <p class="mt-2 font-display text-xl">{{ preset.title }}</p>
-              <p class="text-xs text-slate">{{ preset.hint }}</p>
+              <p class="meta-copy">{{ preset.hint }}</p>
             </button>
           </div>
           <button class="btn-secondary" @click="templateModalOpen = true">Open template modal</button>
@@ -463,18 +469,18 @@ onMounted(load)
         <div v-else-if="activeSection === 'background'" class="space-y-4">
           <div class="grid gap-4 md:grid-cols-2">
             <label class="block">
-              <span class="meta-label">Background color</span>
+              <span class="form-label">Background color</span>
               <input v-model="design.backgroundColor" type="color" class="mt-1 h-10 w-20 rounded-[12px] border border-slate-200 p-1" />
             </label>
 
             <label class="block">
-              <span class="meta-label">Overlay intensity: {{ design.darkOverlayOpacity }}%</span>
+              <span class="form-label">Overlay intensity: {{ design.darkOverlayOpacity }}%</span>
               <input v-model.number="design.darkOverlayOpacity" type="range" class="mt-2 w-full" min="0" max="90" step="5" />
             </label>
           </div>
 
           <label class="block">
-            <span class="meta-label">Background image</span>
+            <span class="form-label">Background image</span>
             <input type="file" accept="image/*" class="field mt-1" @change="uploadBackground" />
           </label>
 
@@ -489,22 +495,22 @@ onMounted(load)
         </div>
 
         <div v-else-if="activeSection === 'text'" class="space-y-3">
-          <label class="inline-flex items-center gap-2 text-sm text-slate">
+          <label class="inline-flex items-center gap-2 text-sm text-slate-700">
             <input v-model="design.showHeader" type="checkbox" />
             Show header
           </label>
-          <label class="inline-flex items-center gap-2 text-sm text-slate">
+          <label class="inline-flex items-center gap-2 text-sm text-slate-700">
             <input v-model="design.showFooter" type="checkbox" />
             Show footer
           </label>
 
           <label class="block">
-            <span class="meta-label">Header text</span>
+            <span class="form-label">Header text</span>
             <input v-model="design.headerText" class="field mt-1" />
           </label>
 
           <label class="block">
-            <span class="meta-label">Footer text</span>
+            <span class="form-label">Footer text</span>
             <input v-model="design.footerText" class="field mt-1" />
           </label>
 
@@ -520,12 +526,12 @@ onMounted(load)
 
         <div v-else-if="activeSection === 'layout'" class="space-y-3">
           <label class="block">
-            <span class="meta-label">Content padding: {{ design.contentPadding }}px</span>
-            <input v-model.number="design.contentPadding" class="mt-2 w-full" type="range" min="0" max="180" step="2" />
+            <span class="form-label">Content padding: {{ clampedPadding }}px</span>
+            <input v-model.number="design.contentPadding" class="mt-2 w-full" type="range" min="16" max="72" step="2" />
           </label>
 
           <label class="block">
-            <span class="meta-label">Horizontal alignment</span>
+            <span class="form-label">Horizontal alignment</span>
             <select v-model="design.horizontalAlignment" class="field mt-1">
               <option value="left">Left</option>
               <option value="center">Center</option>
@@ -534,7 +540,7 @@ onMounted(load)
           </label>
 
           <label class="block">
-            <span class="meta-label">Vertical alignment</span>
+            <span class="form-label">Vertical alignment</span>
             <select v-model="design.verticalAlignment" class="field mt-1">
               <option value="top">Top</option>
               <option value="center">Center</option>
@@ -545,7 +551,7 @@ onMounted(load)
           <button
             class="btn-primary"
             :disabled="savingDesign"
-            @click="saveDesign({ content_padding: design.contentPadding, horizontal_alignment: design.horizontalAlignment, vertical_alignment: design.verticalAlignment })"
+            @click="saveDesign({ content_padding: clampedPadding, horizontal_alignment: design.horizontalAlignment, vertical_alignment: design.verticalAlignment })"
           >
             <span v-if="savingDesign" class="loader-dot" />
             {{ savingDesign ? 'Saving...' : 'Save layout settings' }}
@@ -553,11 +559,11 @@ onMounted(load)
         </div>
 
         <div v-else-if="activeSection === 'additional'" class="space-y-3">
-          <label class="inline-flex items-center gap-2 text-sm text-slate">
+          <label class="inline-flex items-center gap-2 text-sm text-slate-700">
             <input v-model="design.showOrderBadge" type="checkbox" />
             Show slide number badge
           </label>
-          <label class="inline-flex items-center gap-2 text-sm text-slate">
+          <label class="inline-flex items-center gap-2 text-sm text-slate-700">
             <input v-model="design.roundedPreview" type="checkbox" />
             Rounded preview
           </label>
@@ -573,12 +579,12 @@ onMounted(load)
         </div>
 
         <div v-else class="space-y-3">
-          <p class="text-sm text-slate">Export carousel as 1080x1350 PNG ZIP.</p>
+          <p class="meta-copy max-w-prose">Export carousel as 1080x1350 PNG ZIP.</p>
           <button class="btn-primary" :disabled="exporting" @click="exportZip">
             <span v-if="exporting" class="loader-dot" />
             {{ exporting ? 'Exporting...' : 'Export ZIP' }}
           </button>
-          <p v-if="exportState !== 'idle'" class="text-xs font-semibold uppercase text-slate">{{ exportStatusText }}</p>
+          <p v-if="exportState !== 'idle'" class="text-xs font-semibold uppercase text-slate-500">{{ exportStatusText }}</p>
         </div>
       </div>
     </div>
@@ -592,7 +598,7 @@ onMounted(load)
           <button class="btn-secondary" @click="templateModalOpen = false">Close</button>
         </div>
 
-        <label class="mt-3 inline-flex items-center gap-2 text-sm text-slate">
+        <label class="mt-3 inline-flex items-center gap-2 text-sm text-slate-700">
           <input v-model="applyToAllSlides" type="checkbox" />
           Apply to all slides
         </label>
@@ -609,7 +615,7 @@ onMounted(load)
               <p class="font-display text-sm">Slide title</p>
             </div>
             <p class="font-display text-xl">{{ preset.title }}</p>
-            <p class="text-xs text-slate">{{ preset.hint }}</p>
+            <p class="meta-copy">{{ preset.hint }}</p>
           </button>
         </div>
       </div>
@@ -626,7 +632,7 @@ onMounted(load)
 
 .editor-preview-scale {
   --editor-scale: 0.95;
-  width: min(100%, 560px, calc((100vh - 250px) * 4 / 5));
+  width: min(100%, 560px);
   transform: scale(var(--editor-scale));
   transform-origin: top center;
 }
@@ -639,24 +645,56 @@ onMounted(load)
   padding: clamp(24px, 3.2vw, 42px);
 }
 
+.editor-title,
+.editor-body {
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.editor-title {
+  color: #0f172a;
+}
+
+.editor-body {
+  color: #334155;
+}
+
 @media (max-width: 1120px) {
   .editor-preview-scale {
     --editor-scale: 0.9;
-    width: min(100%, 520px, calc((100vh - 250px) * 4 / 5));
+    width: min(100%, 520px);
   }
 }
 
 @media (max-width: 820px) {
   .editor-preview-scale {
     --editor-scale: 0.85;
-    width: min(100%, 490px, calc((100vh - 220px) * 4 / 5));
+    width: min(100%, 490px);
   }
 }
 
 @media (max-width: 560px) {
   .editor-preview-scale {
     --editor-scale: 0.8;
-    width: min(100%, 450px, calc((100vh - 180px) * 4 / 5));
+    width: min(100%, 450px);
+  }
+}
+
+@media (max-height: 900px) {
+  .editor-preview-scale {
+    --editor-scale: 0.9;
+  }
+}
+
+@media (max-height: 780px) {
+  .editor-preview-scale {
+    --editor-scale: 0.84;
+  }
+}
+
+@media (max-height: 680px) {
+  .editor-preview-scale {
+    --editor-scale: 0.78;
   }
 }
 </style>

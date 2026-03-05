@@ -102,8 +102,8 @@ const submit = async () => {
   <section class="space-y-6">
     <div class="panel p-6">
       <p class="meta-label">Step 1</p>
-      <h1 class="font-display text-3xl md:text-4xl">Create Carousel</h1>
-      <p class="mt-2 text-sm text-slate">Select source type and generate a production-ready carousel.</p>
+      <h1 class="page-title font-display">Create Carousel</h1>
+      <p class="body-copy mt-2 max-w-[65ch]">Select source type and generate a production-ready carousel.</p>
 
       <div class="mt-6 grid gap-3 md:grid-cols-3">
         <button
@@ -114,8 +114,8 @@ const submit = async () => {
           :class="item.id === method ? 'border-ink bg-ink/5 shadow-[var(--shadow-soft)]' : 'border-slate-200 bg-white hover:border-slate-300'"
           @click="method = item.id"
         >
-          <p class="font-display text-xl">{{ item.title }}</p>
-          <p class="mt-1 text-sm text-slate">{{ item.hint }}</p>
+          <p class="section-title font-display">{{ item.title }}</p>
+          <p class="meta-copy mt-1 max-w-prose">{{ item.hint }}</p>
         </button>
       </div>
     </div>
@@ -123,19 +123,19 @@ const submit = async () => {
     <form class="panel space-y-4 p-6" @submit.prevent="submit">
       <div class="grid gap-4 md:grid-cols-2">
         <label class="block">
-          <span class="mb-1 block text-sm font-medium">Title</span>
+          <span class="form-label">Title</span>
           <input v-model="form.title" class="field" placeholder="AI onboarding playbook" required />
         </label>
 
         <label class="block">
-          <span class="mb-1 block text-sm font-medium">Slides count</span>
+          <span class="form-label">Slides count</span>
           <input v-model.number="form.slidesCount" class="field" type="number" min="6" max="10" />
         </label>
       </div>
 
       <div class="grid gap-4 md:grid-cols-2">
         <label class="block">
-          <span class="mb-1 block text-sm font-medium">Language</span>
+          <span class="form-label">Language</span>
           <select v-model="form.language" class="field">
             <option value="RU">RU</option>
             <option value="EN">EN</option>
@@ -143,13 +143,13 @@ const submit = async () => {
         </label>
 
         <label class="block">
-          <span class="mb-1 block text-sm font-medium">Style hint</span>
+          <span class="form-label">Style hint</span>
           <input v-model="form.styleHint" class="field" placeholder="minimal, educational, with CTA" />
         </label>
       </div>
 
       <label class="block">
-        <span class="mb-1 block text-sm font-medium">
+        <span class="form-label">
           {{ method === 'video' ? 'Video link' : method === 'links' ? 'Links list' : 'Source text' }}
         </span>
         <textarea
@@ -161,7 +161,7 @@ const submit = async () => {
       </label>
 
       <div class="rounded-[16px] border border-slate-200 bg-slate-50/60 p-3">
-        <p class="text-xs text-slate">Generation will consume approximately <strong>{{ estimatedTokens }}</strong> tokens.</p>
+        <p class="meta-copy">Generation will consume approximately <strong class="text-slate-700">{{ estimatedTokens }}</strong> tokens.</p>
       </div>
 
       <div v-if="generationStep !== 'idle'" class="rounded-[16px] border border-slate-200 bg-white p-3">
@@ -171,7 +171,7 @@ const submit = async () => {
           <span v-if="generationStep === 'failed'" class="h-2 w-2 rounded-full bg-rose-500" />
           <span>Generation status: <span class="capitalize">{{ generationStep }}</span></span>
         </div>
-        <p class="text-xs text-slate">{{ generationMessage }}</p>
+        <p class="meta-copy">{{ generationMessage }}</p>
       </div>
 
       <p v-if="error" class="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{{ error }}</p>
