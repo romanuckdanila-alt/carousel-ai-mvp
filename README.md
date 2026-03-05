@@ -2,6 +2,15 @@
 
 Production-style MVP for generating Instagram carousel posts from source text/video, editing slide content and design, and exporting final slides as a ZIP archive of PNG images.
 
+## Before first run
+1. Create local env file:
+```bash
+cp .env.example .env
+```
+2. Set `OPENROUTER_API_KEY` in `.env`.
+
+Without a valid key, the app starts normally, but slide generation may fall back to placeholder content.
+
 ## Quick Demo Flow
 Quick demo:
 

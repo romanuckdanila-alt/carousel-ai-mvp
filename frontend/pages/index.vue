@@ -20,6 +20,13 @@ const statusClass = (status: string) => {
   return "border-slate-200 bg-slate-50 text-slate-600"
 }
 
+const statusLabel = (status: string) => {
+  if (status === "ready") return t("statusReady")
+  if (status === "generating") return t("statusGenerating")
+  if (status === "failed") return t("statusFailed")
+  return t("statusDraft")
+}
+
 const createdLabel = (raw: string) =>
   new Date(raw).toLocaleString([], {
     month: "short",
@@ -48,7 +55,7 @@ const load = async () => {
       })
     )
   } catch (err: any) {
-    error.value = err?.data?.detail || err?.message || "Failed to load carousels"
+    error.value = err?.data?.detail || err?.message || t("failedToLoadCarousels")
   } finally {
     loading.value = false
   }
@@ -75,7 +82,7 @@ const confirmDelete = async () => {
     delete previews[id]
     deleteDialogCarouselId.value = null
   } catch (err: any) {
-    error.value = err?.data?.detail || err?.message || "Failed to delete carousel"
+    error.value = err?.data?.detail || err?.message || t("failedToDeleteCarousel")
   } finally {
     deletingId.value = null
   }
@@ -87,18 +94,18 @@ onMounted(load)
 <template>
   <section class="space-y-8">
     <div class="panel p-6">
-      <div class="flex flex-wrap items-start justify-between gap-4">
-        <div class="space-y-2">
-          <p class="meta-label">Workspace</p>
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div class="min-w-0 flex-1 space-y-2">
+          <p class="meta-label">{{ t("workspace") }}</p>
           <h1 class="page-title font-display">{{ t("myCarousels") }}</h1>
-          <p class="body-copy max-w-[65ch]">Manage generated carousels, continue editing and export final assets.</p>
+          <p class="body-copy max-w-[65ch]">{{ t("manageCarouselsDescription") }}</p>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2">
-          <button class="btn-secondary" @click="viewMode = 'grid'">Grid</button>
-          <button class="btn-secondary" @click="viewMode = 'list'">List</button>
-          <button class="btn-secondary" @click="load">{{ t("refresh") }}</button>
-          <NuxtLink to="/create" class="btn-primary">{{ t("createCarousel") }}</NuxtLink>
+        <div class="stable-actions-row lg:justify-end">
+          <button class="btn-secondary w-[92px] justify-center" @click="viewMode = 'grid'">{{ t("grid") }}</button>
+          <button class="btn-secondary w-[92px] justify-center" @click="viewMode = 'list'">{{ t("list") }}</button>
+          <button class="btn-secondary w-[106px] justify-center" @click="load">{{ t("refresh") }}</button>
+          <NuxtLink to="/create" class="btn-primary w-[180px] justify-center">{{ t("createCarousel") }}</NuxtLink>
         </div>
       </div>
     </div>
@@ -121,10 +128,10 @@ onMounted(load)
     </div>
 
     <div v-else-if="carousels.length === 0" class="panel px-6 py-14 text-center">
-      <p class="meta-label">Empty</p>
-      <h2 class="mt-2 font-display text-3xl font-semibold text-slate-900">Create your first carousel</h2>
-      <p class="body-copy mx-auto mt-2 max-w-prose">Start from text or video and generate editable slide decks in minutes.</p>
-      <NuxtLink to="/create" class="btn-primary mt-6 px-8 py-3 text-base">Create</NuxtLink>
+      <p class="meta-label">{{ t("emptyStateLabel") }}</p>
+      <h2 class="mt-2 font-display text-3xl font-semibold text-slate-900">{{ t("createFirstCarousel") }}</h2>
+      <p class="body-copy mx-auto mt-2 max-w-prose">{{ t("createFirstCarouselDescription") }}</p>
+      <NuxtLink to="/create" class="btn-primary mt-6 px-8 py-3 text-base">{{ t("create") }}</NuxtLink>
     </div>
 
     <div
@@ -141,7 +148,7 @@ onMounted(load)
       >
         <div class="flex items-center justify-between gap-2">
           <div class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold" :class="statusClass(mapCarouselStatus(carousel.status))">
-              {{ mapCarouselStatus(carousel.status) }}
+              {{ statusLabel(mapCarouselStatus(carousel.status)) }}
           </div>
           <span class="text-xs text-slate-500">{{ createdLabel(carousel.created_at) }}</span>
         </div>
@@ -152,13 +159,13 @@ onMounted(load)
           <p v-if="previews[carousel.id]?.body" class="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-600">
             {{ previews[carousel.id]?.body }}
           </p>
-          <p v-else class="mt-2 text-sm leading-relaxed text-slate-500">No slide preview yet.</p>
+          <p v-else class="mt-2 text-sm leading-relaxed text-slate-500">{{ t("noSlidePreview") }}</p>
 
           <p class="mt-3 text-xs text-slate-500">
-            Slides {{ carousel.slides_count }} · {{ carousel.language }} · {{ carousel.source_type }}
+            {{ t("slidesMeta") }} {{ carousel.slides_count }} · {{ carousel.language }} · {{ carousel.source_type }}
           </p>
 
-          <div class="mt-auto flex items-center gap-2 pt-4">
+          <div class="mt-auto grid grid-cols-1 gap-2 pt-4 sm:grid-cols-3">
             <NuxtLink :to="`/preview/${carousel.id}`" class="btn-secondary card-action-btn">{{ t("open") }}</NuxtLink>
             <NuxtLink :to="`/editor/${carousel.id}`" class="btn-primary card-action-btn">{{ t("continueEditing") }}</NuxtLink>
             <button
@@ -166,7 +173,7 @@ onMounted(load)
               :disabled="Boolean(deletingId)"
               @click="openDeleteDialog(carousel.id)"
             >
-              {{ deletingId === carousel.id ? 'Deleting...' : t("delete") }}
+              {{ deletingId === carousel.id ? t("deleting") : t("delete") }}
             </button>
           </div>
         </div>
@@ -175,12 +182,12 @@ onMounted(load)
 
     <div v-if="deleteDialogCarouselId" class="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4">
       <div class="panel w-full max-w-sm p-5">
-        <h3 class="section-title font-display">Delete this carousel?</h3>
-        <p class="meta-copy mt-2">This action cannot be undone.</p>
+        <h3 class="section-title font-display">{{ t("deleteCarouselQuestion") }}</h3>
+        <p class="meta-copy mt-2">{{ t("deleteCarouselWarning") }}</p>
         <div class="mt-5 flex items-center justify-end gap-2">
-          <button class="btn-secondary" :disabled="Boolean(deletingId)" @click="closeDeleteDialog">Cancel</button>
+          <button class="btn-secondary" :disabled="Boolean(deletingId)" @click="closeDeleteDialog">{{ t("cancel") }}</button>
           <button class="btn-secondary !border-rose-200 !bg-rose-600 !text-white hover:!bg-rose-700" :disabled="Boolean(deletingId)" @click="confirmDelete">
-            {{ deletingId ? 'Deleting...' : 'Delete' }}
+            {{ deletingId ? t("deleting") : t("delete") }}
           </button>
         </div>
       </div>

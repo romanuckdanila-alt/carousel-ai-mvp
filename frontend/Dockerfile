@@ -6,5 +6,6 @@ COPY package.json /app/package.json
 RUN npm install
 
 COPY . /app
+RUN npm run build
 
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
+CMD ["sh", "-c", "NITRO_HOST=0.0.0.0 NITRO_PORT=3000 npm run start"]

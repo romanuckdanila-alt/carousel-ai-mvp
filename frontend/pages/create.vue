@@ -8,7 +8,6 @@ const { t } = useLanguage()
 const method = ref<CarouselSourceType | "links">("text")
 const loading = ref(false)
 const generationStep = ref<"idle" | "queued" | "running" | "done" | "failed">("idle")
-const generationMessage = ref("")
 const error = ref("")
 
 const form = reactive({
@@ -19,11 +18,27 @@ const form = reactive({
   sourceInput: ""
 })
 
-const methodCards = [
-  { id: "text", title: "From text", hint: "Paste notes, script or article draft." },
-  { id: "video", title: "From video link", hint: "Insert URL and generate summary slides." },
-  { id: "links", title: "From links", hint: "Optional mode: multiple URLs in one input." }
-] as const
+const methodCards = computed(() => [
+  { id: "text", title: t("methodFromText"), hint: t("methodFromTextHint") },
+  { id: "video", title: t("methodFromVideo"), hint: t("methodFromVideoHint") },
+  { id: "links", title: t("methodFromLinks"), hint: t("methodFromLinksHint") }
+])
+
+const generationStepLabel = computed(() => {
+  if (generationStep.value === "queued") return t("statusQueued")
+  if (generationStep.value === "running") return t("statusRunning")
+  if (generationStep.value === "done") return t("statusDone")
+  if (generationStep.value === "failed") return t("statusFailed")
+  return t("statusDraft")
+})
+
+const generationMessage = computed(() => {
+  if (generationStep.value === "queued") return t("generationQueued")
+  if (generationStep.value === "running") return t("generationRunning")
+  if (generationStep.value === "done") return t("generationCompleted")
+  if (generationStep.value === "failed") return t("generationFailed")
+  return ""
+})
 
 const estimatedTokens = computed(() => {
   const sourceWeight = Math.ceil(Math.min(form.sourceInput.length, 2400) / 4)
@@ -48,25 +63,19 @@ const waitForGeneration = async (generationId: string) => {
     const state = await api<GenerationResult>(`/generations/${generationId}`)
     const mapped = mapGenerationStatus(state.status)
     generationStep.value = mapped as typeof generationStep.value
-    generationMessage.value = mapped === "done"
-      ? "Generation completed"
-      : mapped === "failed"
-        ? "Generation failed"
-        : `Generation ${mapped}`
 
     if (mapped === "done") return
-    if (mapped === "failed") throw new Error("Generation failed")
+    if (mapped === "failed") throw new Error(t("generationFailed"))
     await wait(1000)
   }
 
-  throw new Error("Generation timeout")
+  throw new Error(t("generationTimeout"))
 }
 
 const submit = async () => {
   loading.value = true
   error.value = ""
   generationStep.value = "queued"
-  generationMessage.value = "Generation queued"
 
   try {
     const source = buildPayload()
@@ -92,7 +101,7 @@ const submit = async () => {
     await navigateTo(`/preview/${carousel.id}`)
   } catch (err: any) {
     generationStep.value = "failed"
-    error.value = err?.data?.detail || err?.message || "Failed to create carousel"
+    error.value = err?.data?.detail || err?.message || t("failedToCreateCarousel")
   } finally {
     loading.value = false
   }
@@ -102,9 +111,9 @@ const submit = async () => {
 <template>
   <section class="space-y-8">
     <div class="panel p-6">
-      <p class="meta-label">Step 1</p>
+      <p class="meta-label">{{ t("step1") }}</p>
       <h1 class="page-title font-display">{{ t("createCarousel") }}</h1>
-      <p class="body-copy mt-2 max-w-[65ch]">Select source type and generate a production-ready carousel.</p>
+      <p class="body-copy mt-2 max-w-[65ch]">{{ t("createCarouselDescription") }}</p>
 
       <div class="mt-6 grid gap-3 md:grid-cols-3">
         <button
@@ -124,19 +133,19 @@ const submit = async () => {
     <form class="panel space-y-4 p-6" @submit.prevent="submit">
       <div class="grid gap-4 md:grid-cols-2">
         <label class="block">
-          <span class="form-label">Title</span>
-          <input v-model="form.title" class="field" placeholder="AI onboarding playbook" required />
+          <span class="form-label">{{ t("titleLabel") }}</span>
+          <input v-model="form.title" class="field" :placeholder="t('titlePlaceholder')" required />
         </label>
 
         <label class="block">
-          <span class="form-label">Slides count</span>
+          <span class="form-label">{{ t("slidesCountLabel") }}</span>
           <input v-model.number="form.slidesCount" class="field" type="number" min="6" max="10" />
         </label>
       </div>
 
       <div class="grid gap-4 md:grid-cols-2">
         <label class="block">
-          <span class="form-label">Language</span>
+          <span class="form-label">{{ t("languageLabel") }}</span>
           <select v-model="form.language" class="field">
             <option value="RU">RU</option>
             <option value="EN">EN</option>
@@ -144,25 +153,25 @@ const submit = async () => {
         </label>
 
         <label class="block">
-          <span class="form-label">Style hint</span>
-          <input v-model="form.styleHint" class="field" placeholder="minimal, educational, with CTA" />
+          <span class="form-label">{{ t("styleHintLabel") }}</span>
+          <input v-model="form.styleHint" class="field" :placeholder="t('styleHintPlaceholder')" />
         </label>
       </div>
 
       <label class="block">
         <span class="form-label">
-          {{ method === 'video' ? 'Video link' : method === 'links' ? 'Links list' : 'Source text' }}
+          {{ method === 'video' ? t('sourceVideoLabel') : method === 'links' ? t('sourceLinksLabel') : t('sourceTextLabel') }}
         </span>
         <textarea
           v-model="form.sourceInput"
           class="field min-h-36"
-          :placeholder="method === 'video' ? 'https://youtube.com/...' : method === 'links' ? 'https://site.com/post-1\nhttps://site.com/post-2' : 'Paste your source text'"
+          :placeholder="method === 'video' ? t('sourceVideoPlaceholder') : method === 'links' ? t('sourceLinksPlaceholder') : t('sourceTextPlaceholder')"
           required
         />
       </label>
 
       <div class="rounded-[16px] border border-slate-200 bg-slate-50/60 p-3">
-        <p class="meta-copy">Generation will consume approximately <strong class="text-slate-700">{{ estimatedTokens }}</strong> tokens.</p>
+        <p class="meta-copy">{{ t("tokenEstimatePrefix") }} <strong class="text-slate-700">{{ estimatedTokens }}</strong> {{ t("tokenEstimateSuffix") }}</p>
       </div>
 
       <div v-if="generationStep !== 'idle'" class="rounded-[16px] border border-slate-200 bg-white p-3">
@@ -170,19 +179,19 @@ const submit = async () => {
           <span v-if="generationStep === 'queued' || generationStep === 'running'" class="loader-dot text-amber-500" />
           <span v-if="generationStep === 'done'" class="h-2 w-2 rounded-full bg-emerald-500" />
           <span v-if="generationStep === 'failed'" class="h-2 w-2 rounded-full bg-rose-500" />
-          <span>Generation status: <span class="capitalize">{{ generationStep }}</span></span>
+          <span>{{ t("generationStatus") }} <span class="capitalize">{{ generationStepLabel }}</span></span>
         </div>
         <p class="meta-copy">{{ generationMessage }}</p>
       </div>
 
       <p v-if="error" class="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{{ error }}</p>
 
-      <div class="flex flex-wrap items-center gap-3">
-        <button class="btn-primary" :disabled="loading">
+      <div class="stable-actions-row">
+        <button class="btn-primary min-w-[140px] justify-center" :disabled="loading">
           <span v-if="loading" class="loader-dot" />
-          {{ loading ? 'Generating...' : t("generate") }}
+          {{ loading ? t("generating") : t("generate") }}
         </button>
-        <NuxtLink to="/" class="btn-secondary">Cancel</NuxtLink>
+        <NuxtLink to="/" class="btn-secondary min-w-[110px] justify-center">{{ t("cancel") }}</NuxtLink>
       </div>
     </form>
   </section>

@@ -20,6 +20,13 @@ const currentSlide = computed(() => slides.value[index.value] || null)
 const canPrev = computed(() => index.value > 0)
 const canNext = computed(() => index.value < slides.value.length - 1)
 const slideBadge = (slideIndex: number) => String(slideIndex + 1).padStart(2, "0")
+const generationStateLabel = computed(() => {
+  if (generationState.value === "queued") return t("statusQueued")
+  if (generationState.value === "running") return t("statusRunning")
+  if (generationState.value === "done") return t("statusDone")
+  if (generationState.value === "failed") return t("statusFailed")
+  return t("statusDraft")
+})
 const setThumbRef = (el: Element | null, i: number) => {
   thumbRefs.value[i] = el as HTMLElement | null
 }
@@ -50,7 +57,7 @@ const load = async () => {
     slides.value = await api<Slide[]>(`/carousels/${carouselId.value}/slides`)
     index.value = 0
   } catch (err: any) {
-    error.value = err?.data?.detail || err?.message || "Failed to load preview"
+    error.value = err?.data?.detail || err?.message || t("failedToLoadPreview")
   } finally {
     loading.value = false
   }
@@ -61,10 +68,10 @@ const pollGeneration = async (generationId: string) => {
     const state = await api<GenerationResult>(`/generations/${generationId}`)
     generationState.value = mapGenerationStatus(state.status) as typeof generationState.value
     if (generationState.value === "done") return
-    if (generationState.value === "failed") throw new Error("Generation failed")
+    if (generationState.value === "failed") throw new Error(t("generationFailed"))
     await wait(1000)
   }
-  throw new Error("Generation timeout")
+  throw new Error(t("generationTimeout"))
 }
 
 const regenerate = async () => {
@@ -81,7 +88,7 @@ const regenerate = async () => {
     await load()
   } catch (err: any) {
     generationState.value = "failed"
-    error.value = err?.data?.detail || err?.message || "Failed to regenerate"
+    error.value = err?.data?.detail || err?.message || t("failedToRegenerate")
   } finally {
     regenerating.value = false
   }
@@ -93,19 +100,19 @@ onMounted(load)
 <template>
   <section class="space-y-8">
     <div class="panel">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div class="space-y-2">
-          <p class="text-xs uppercase tracking-wider text-slate-500">Step 3</p>
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div class="min-w-0 flex-1 space-y-2">
+          <p class="text-xs uppercase tracking-wider text-slate-500">{{ t("step3") }}</p>
           <h1 class="text-2xl font-semibold text-slate-900">{{ t("preview") }}</h1>
-          <p class="text-sm text-slate-600">{{ carousel?.title || 'Generated carousel preview' }}</p>
+          <p class="text-sm text-slate-600">{{ carousel?.title || t("generatedCarouselPreview") }}</p>
         </div>
 
-        <div class="ml-auto flex items-center gap-3">
-          <button class="btn-secondary" :disabled="regenerating" @click="regenerate">
+        <div class="stable-actions-row lg:justify-end">
+          <button class="btn-secondary w-[152px] justify-center" :disabled="regenerating" @click="regenerate">
             <span v-if="regenerating" class="loader-dot" />
-            {{ regenerating ? 'Regenerating...' : t("regenerate") }}
+            {{ regenerating ? t("regenerating") : t("regenerate") }}
           </button>
-          <NuxtLink :to="`/editor/${carouselId}`" class="btn-primary">Open in Editor</NuxtLink>
+          <NuxtLink :to="`/editor/${carouselId}`" class="btn-primary w-[180px] justify-center">{{ t("openInEditor") }}</NuxtLink>
         </div>
       </div>
 
@@ -113,7 +120,7 @@ onMounted(load)
         <span v-if="generationState === 'queued' || generationState === 'running'" class="loader-dot text-amber-500" />
         <span v-else-if="generationState === 'done'" class="h-2 w-2 rounded-full bg-emerald-500" />
         <span v-else class="h-2 w-2 rounded-full bg-rose-500" />
-        {{ generationState }}
+        {{ generationStateLabel }}
       </div>
     </div>
 
@@ -133,9 +140,9 @@ onMounted(load)
     <div v-else class="space-y-8">
       <div class="panel overflow-visible">
         <div class="mb-6 flex items-center justify-between">
-          <button class="nav-circle-btn" :disabled="!canPrev" aria-label="Previous slide" @click="goPrev">←</button>
-          <p class="meta-label">Slide {{ index + 1 }} / {{ slides.length }}</p>
-          <button class="nav-circle-btn" :disabled="!canNext" aria-label="Next slide" @click="goNext">→</button>
+          <button class="nav-circle-btn" :disabled="!canPrev" :aria-label="t('previousSlide')" @click="goPrev">←</button>
+          <p class="meta-label">{{ t("slideLabel") }} {{ index + 1 }} / {{ slides.length }}</p>
+          <button class="nav-circle-btn" :disabled="!canNext" :aria-label="t('nextSlide')" @click="goNext">→</button>
         </div>
 
         <div class="preview-stage">
@@ -143,7 +150,7 @@ onMounted(load)
             <transition name="fade" mode="out-in">
               <article v-if="currentSlide" :key="currentSlide.id" class="slide-canvas slide-card">
                 <header class="slide-section slide-header">
-                  <p class="meta-label">Slide {{ index + 1 }}</p>
+                  <p class="meta-label">{{ t("slideLabel") }} {{ index + 1 }}</p>
                   <h2 class="slide-title">{{ currentSlide.title }}</h2>
                 </header>
 
@@ -152,7 +159,7 @@ onMounted(load)
                 </div>
 
                 <footer class="slide-section slide-footer">
-                  {{ currentSlide.footer || carousel?.title || 'Carousel preview' }}
+                  {{ currentSlide.footer || carousel?.title || t("carouselPreview") }}
                 </footer>
               </article>
             </transition>
@@ -161,7 +168,7 @@ onMounted(load)
       </div>
 
       <div class="panel overflow-visible">
-        <p class="meta-label">Slides</p>
+        <p class="meta-label">{{ t("slidesLabel") }}</p>
         <div class="thumb-strip">
           <button
             v-for="(slide, i) in slides"

@@ -51,6 +51,8 @@ p {
   @apply inline-flex items-center justify-center gap-2 bg-ink px-4 py-2 text-sm font-semibold text-white transition;
   border-radius: var(--radius-button);
   box-shadow: var(--shadow-button);
+  white-space: nowrap;
+  min-height: 40px;
 }
 
 .btn-primary:hover {
@@ -63,6 +65,8 @@ p {
   @apply inline-flex items-center justify-center gap-2 border bg-white px-4 py-2 text-sm font-semibold text-slate transition;
   border-color: rgba(203, 213, 225, 0.75);
   border-radius: var(--radius-button);
+  white-space: nowrap;
+  min-height: 40px;
 }
 
 .btn-secondary:hover {
@@ -132,7 +136,24 @@ p {
 }
 
 .card-action-btn {
-  @apply rounded-lg px-3 py-1.5 text-sm font-medium transition;
+  @apply w-full rounded-lg px-3 py-1.5 text-sm font-medium transition;
+  white-space: nowrap;
+}
+
+.stable-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.stable-actions-row > * {
+  flex: 0 0 auto;
 }
 
 .nav-circle-btn {
