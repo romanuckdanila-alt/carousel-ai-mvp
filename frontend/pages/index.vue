@@ -84,7 +84,7 @@ onMounted(load)
 </script>
 
 <template>
-  <section class="space-y-6">
+  <section class="space-y-8">
     <div class="panel p-6">
       <div class="flex flex-wrap items-start justify-between gap-4">
         <div class="space-y-2">

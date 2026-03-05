@@ -324,8 +324,8 @@ onMounted(load)
 </script>
 
 <template>
-  <section class="space-y-6">
-    <div class="panel p-5">
+  <section class="space-y-8">
+    <div class="panel">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="space-y-1">
           <p class="meta-label">Step 4</p>
@@ -352,15 +352,15 @@ onMounted(load)
       </div>
     </div>
 
-    <p v-if="loading" class="panel p-4 text-sm text-slate">Loading editor...</p>
+    <p v-if="loading" class="panel text-sm text-slate">Loading editor...</p>
     <p v-else-if="error" class="rounded-[16px] bg-rose-50 p-3 text-sm text-rose-700">{{ error }}</p>
 
-    <div v-else class="grid gap-4 xl:grid-cols-[1fr_390px]">
-      <div class="panel p-4">
+    <div v-else class="grid gap-6 xl:grid-cols-[1fr_390px]">
+      <div class="panel">
         <div class="flex items-center justify-between gap-2">
-          <button class="btn-secondary nav-arrow" :disabled="!canPrev" @click="currentIndex -= 1">← Prev</button>
+          <button class="nav-circle-btn" :disabled="!canPrev" aria-label="Previous slide" @click="currentIndex -= 1">←</button>
           <p class="meta-label">Slide {{ currentIndex + 1 }} / {{ slides.length }}</p>
-          <button class="btn-secondary nav-arrow" :disabled="!canNext" @click="currentIndex += 1">Next →</button>
+          <button class="nav-circle-btn" :disabled="!canNext" aria-label="Next slide" @click="currentIndex += 1">→</button>
         </div>
 
         <div class="editor-preview-wrapper mt-4">
@@ -406,7 +406,7 @@ onMounted(load)
         </div>
       </div>
 
-      <aside class="panel p-4">
+      <aside class="panel">
         <h2 class="section-title font-display">Slide Text</h2>
 
         <div v-if="currentSlide" class="mt-4 space-y-4">
@@ -433,8 +433,8 @@ onMounted(load)
       </aside>
     </div>
 
-    <div class="panel p-4">
-      <div class="flex flex-wrap items-center gap-2">
+    <div class="panel">
+      <div class="mb-4 flex flex-wrap gap-2">
         <button
           class="flex items-center rounded-xl px-4 py-2 text-sm font-medium transition"
           :class="activeSection === 'template' ? 'bg-ink text-white' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'"
@@ -479,7 +479,7 @@ onMounted(load)
         </button>
       </div>
 
-      <div class="mt-4 rounded-xl border border-slate-200 bg-white p-5">
+      <div class="mt-4 space-y-4 rounded-xl border border-slate-200 bg-white p-5">
         <div v-if="activeSection === 'template'" class="space-y-4">
           <p class="mb-3 text-sm font-semibold text-slate-700">Template settings</p>
           <p class="meta-copy max-w-prose">Select a visual template preset.</p>

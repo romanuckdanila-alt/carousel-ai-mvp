@@ -91,7 +91,7 @@ onMounted(load)
 
 <template>
   <section class="space-y-8">
-    <div class="panel p-6">
+    <div class="panel">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="space-y-2">
           <p class="text-xs uppercase tracking-wider text-slate-500">Step 3</p>
@@ -116,7 +116,7 @@ onMounted(load)
       </div>
     </div>
 
-    <div v-if="loading" class="panel space-y-6 p-4 md:p-6">
+    <div v-if="loading" class="panel space-y-6">
       <div class="skeleton h-4 w-32" />
       <div class="preview-stage">
         <div class="preview-scale">
@@ -130,11 +130,11 @@ onMounted(load)
     <p v-else-if="error" class="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{{ error }}</p>
 
     <div v-else class="space-y-8">
-      <div class="panel overflow-visible p-4 md:p-6">
+      <div class="panel overflow-visible">
         <div class="mb-6 flex items-center justify-between">
-          <button class="preview-nav-btn" :disabled="!canPrev" @click="goPrev">←</button>
+          <button class="nav-circle-btn" :disabled="!canPrev" aria-label="Previous slide" @click="goPrev">←</button>
           <p class="meta-label">Slide {{ index + 1 }} / {{ slides.length }}</p>
-          <button class="preview-nav-btn" :disabled="!canNext" @click="goNext">→</button>
+          <button class="nav-circle-btn" :disabled="!canNext" aria-label="Next slide" @click="goNext">→</button>
         </div>
 
         <div class="preview-stage">
@@ -159,7 +159,7 @@ onMounted(load)
         </div>
       </div>
 
-      <div class="panel overflow-visible p-4 md:p-6">
+      <div class="panel overflow-visible">
         <p class="meta-label">Slides</p>
         <div class="thumb-strip">
           <button
@@ -273,26 +273,6 @@ onMounted(load)
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #627d98;
-}
-
-.preview-nav-btn {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 9999px;
-  border: 1px solid rgba(226, 232, 240, 1);
-  background: #ffffff;
-  color: #334155;
-  transition: background-color 0.2s ease, transform 0.2s ease;
-}
-
-.preview-nav-btn:hover:not(:disabled) {
-  background: rgba(248, 250, 252, 1);
-  transform: translateY(-1px);
-}
-
-.preview-nav-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
 }
 
 .thumb-strip {

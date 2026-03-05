@@ -99,7 +99,7 @@ const submit = async () => {
 </script>
 
 <template>
-  <section class="space-y-6">
+  <section class="space-y-8">
     <div class="panel p-6">
       <p class="meta-label">Step 1</p>
       <h1 class="page-title font-display">Create Carousel</h1>
