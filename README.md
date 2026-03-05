@@ -2,6 +2,25 @@
 
 Production-style MVP for generating Instagram carousel posts from source text/video, editing slide content and design, and exporting final slides as a ZIP archive of PNG images.
 
+## Quick Demo Flow
+Quick demo:
+
+1. Run the project
+```bash
+docker compose up --build
+```
+2. Open the application  
+`http://localhost:3000`
+3. Click "Create Carousel"
+4. Paste source text or a video link
+5. Click "Generate"
+6. Wait until slides are generated
+7. Open the editor and adjust layout if needed
+8. Click "Export"
+9. Download the ZIP containing slide images
+
+A demo carousel may already exist in the database (`AI Startup Onboarding Guide`) for instant preview of the editor and export flow.
+
 ## What the product does
 - Creates carousel drafts from user source input.
 - Runs async AI slide generation.
