@@ -234,3 +234,21 @@ Actual token usage depends on source text size, slide count, and model behavior.
 - Design settings are stored in `source_payload.design` JSON.
 - Export is triggered synchronously from API call and then polled by UI.
 - Storage cleanup is best-effort for uploaded assets/exports on carousel deletion.
+
+## Design Notes
+The provided Figma file was used as a reference for layout structure, screen hierarchy and component grouping (My Carousels → Create → Preview → Editor).
+
+Since the task goal was to deliver a working end-to-end MVP, the implementation focuses on:
+
+- functional UX flow
+- clear visual hierarchy
+- responsive layout
+- simple and consistent design system
+
+Instead of reproducing the Figma layout pixel-perfectly, the UI was implemented using a lightweight component structure with Tailwind utilities.
+
+This allowed faster iteration and easier extension of the editor features (template settings, background controls, layout adjustments).
+
+The overall interaction model and screen structure follow the Figma reference, while the visual styling was simplified to keep the MVP implementation focused on functionality and maintainability.
+
+If required, the UI can be aligned closer to the original Figma layout with pixel-perfect adjustments.
