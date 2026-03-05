@@ -19,13 +19,6 @@ const statusClass = (status: string) => {
   return "border-slate-200 bg-slate-50 text-slate-600"
 }
 
-const statusDotClass = (status: string) => {
-  if (status === "ready") return "bg-emerald-500"
-  if (status === "generating") return "bg-amber-500"
-  if (status === "failed") return "bg-rose-500"
-  return "bg-slate-400"
-}
-
 const createdLabel = (raw: string) =>
   new Date(raw).toLocaleString([], {
     month: "short",
@@ -137,64 +130,42 @@ onMounted(load)
       v-else
       :class="viewMode === 'grid'
         ? 'grid items-stretch gap-6 md:grid-cols-2 xl:grid-cols-3'
-        : 'grid divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white'"
+        : 'grid divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white'"
     >
       <article
         v-for="carousel in carousels"
         :key="carousel.id"
-        class="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
-        :class="viewMode === 'grid' ? 'h-full' : 'h-auto border-0 rounded-none shadow-none hover:shadow-none'"
+        class="flex flex-col rounded-xl border border-slate-200 bg-white p-6 transition hover:shadow-md"
+        :class="viewMode === 'grid' ? 'h-full' : 'h-auto rounded-none border-0 p-4 shadow-none hover:shadow-none'"
       >
-        <div class="relative border-b border-slate-200/70 bg-white p-6">
-          <div class="flex items-center justify-between gap-2">
-            <div class="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold" :class="statusClass(mapCarouselStatus(carousel.status))">
-              <span class="h-2 w-2 rounded-full" :class="statusDotClass(mapCarouselStatus(carousel.status))" />
+        <div class="flex items-center justify-between gap-2">
+          <div class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold" :class="statusClass(mapCarouselStatus(carousel.status))">
               {{ mapCarouselStatus(carousel.status) }}
-            </div>
-            <span class="text-[11px] text-slate">{{ createdLabel(carousel.created_at) }}</span>
           </div>
-
-          <div class="mt-3 min-h-32 rounded-xl border border-slate-200/70 bg-slate-50 p-3">
-            <template v-if="previews[carousel.id]">
-              <p class="text-xs uppercase tracking-wide text-slate-500">First slide</p>
-              <h3 class="mt-1 line-clamp-2 text-lg font-semibold tracking-tight text-slate-900">{{ previews[carousel.id]?.title }}</h3>
-              <p class="mt-2 line-clamp-3 text-sm leading-relaxed text-slate-600">{{ previews[carousel.id]?.body }}</p>
-            </template>
-            <div v-else class="flex h-full min-h-24 items-center justify-center rounded-lg border border-dashed border-slate-300 text-sm text-slate">
-              No slide preview
-            </div>
-          </div>
+          <span class="text-xs text-slate-500">{{ createdLabel(carousel.created_at) }}</span>
         </div>
 
-        <div class="flex flex-1 flex-col space-y-4 p-6">
-          <h2 class="line-clamp-2 text-lg font-semibold tracking-tight text-slate-900">{{ carousel.title }}</h2>
+        <h2 class="mt-3 line-clamp-2 text-lg font-semibold tracking-tight text-slate-900">{{ carousel.title }}</h2>
 
-          <div class="grid grid-cols-3 gap-2">
-            <div class="rounded-xl bg-slate-50 p-2">
-              <p class="text-xs uppercase tracking-wide text-slate-500">Slides</p>
-              <p class="text-base font-semibold text-slate-900">{{ carousel.slides_count }}</p>
-            </div>
-            <div class="rounded-xl bg-slate-50 p-2">
-              <p class="text-xs uppercase tracking-wide text-slate-500">Language</p>
-              <p class="text-base font-semibold text-slate-900">{{ carousel.language }}</p>
-            </div>
-            <div class="rounded-xl bg-slate-50 p-2">
-              <p class="text-xs uppercase tracking-wide text-slate-500">Source</p>
-              <p class="text-base font-semibold text-slate-900">{{ carousel.source_type }}</p>
-            </div>
-          </div>
+        <p v-if="previews[carousel.id]?.body" class="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-600">
+          {{ previews[carousel.id]?.body }}
+        </p>
+        <p v-else class="mt-2 text-sm leading-relaxed text-slate-500">No slide preview yet.</p>
 
-          <div class="mt-auto flex flex-wrap gap-2 pt-1">
-            <NuxtLink :to="`/preview/${carousel.id}`" class="btn-secondary !px-3 !py-1.5">Open</NuxtLink>
-            <NuxtLink :to="`/editor/${carousel.id}`" class="btn-primary !px-3 !py-1.5">Continue editing</NuxtLink>
-            <button
-              class="btn-secondary !border-rose-200 !px-3 !py-1.5 !text-rose-700 hover:!bg-rose-50"
-              :disabled="Boolean(deletingId)"
-              @click="openDeleteDialog(carousel.id)"
-            >
-              {{ deletingId === carousel.id ? 'Deleting...' : 'Delete' }}
-            </button>
-          </div>
+        <p class="mt-3 text-xs text-slate-500">
+          Slides {{ carousel.slides_count }} · {{ carousel.language }} · {{ carousel.source_type }}
+        </p>
+
+        <div class="mt-4 flex items-center gap-2">
+          <NuxtLink :to="`/preview/${carousel.id}`" class="btn-secondary !px-3 !py-1.5">Open</NuxtLink>
+          <NuxtLink :to="`/editor/${carousel.id}`" class="btn-primary !px-3 !py-1.5">Continue editing</NuxtLink>
+          <button
+            class="btn-secondary !border-rose-200 !px-3 !py-1.5 !text-rose-700 hover:!bg-rose-50"
+            :disabled="Boolean(deletingId)"
+            @click="openDeleteDialog(carousel.id)"
+          >
+            {{ deletingId === carousel.id ? 'Deleting...' : 'Delete' }}
+          </button>
         </div>
       </article>
     </div>
