@@ -119,6 +119,28 @@ p {
   @apply mb-2 block text-sm font-medium text-slate;
 }
 
+.carousel-card {
+  @apply rounded-xl border border-slate-200 bg-white transition-all duration-200 ease-out;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.carousel-card:hover {
+  transform: translateY(-2px);
+  background: #f8fafc;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+.carousel-card--list,
+.carousel-card--list:hover {
+  transform: none;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.card-action-btn {
+  @apply rounded-lg px-3 py-1.5 text-sm font-medium transition;
+}
+
 .slide-card {
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-layered);
