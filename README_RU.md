@@ -29,6 +29,7 @@
 - Docker Compose
 - SQLAlchemy
 - Playwright
+- OpenRouter (через OpenAI SDK)
 
 ## Как запустить
 ```bash
@@ -49,17 +50,24 @@ docker compose up --build
 ## Описание API
 Основные эндпоинты:
 - `GET /health`
-- `GET /carousels`
-- `POST /carousels`
-- `GET /carousels/{id}`
-- `GET /carousels/{id}/slides`
-- `PATCH /carousels/{id}/slides/{slide_id}`
-- `PATCH /carousels/{id}/design`
-- `POST /generations`
-- `GET /generations/{id}`
-- `POST /exports`
-- `GET /exports/{id}`
-- `POST /assets/upload`
+- `/carousels`
+  - `GET /carousels`
+  - `POST /carousels`
+  - `GET /carousels/{id}`
+  - `DELETE /carousels/{id}`
+- `/slides`
+  - `GET /carousels/{id}/slides`
+  - `PATCH /carousels/{id}/slides/{slide_id}`
+- `/design`
+  - `PATCH /carousels/{id}/design`
+- `/generations`
+  - `POST /generations`
+  - `GET /generations/{id}`
+- `/assets`
+  - `POST /assets/upload`
+- `/exports`
+  - `POST /exports`
+  - `GET /exports/{id}`
 
 Пример запуска генерации:
 ```bash
@@ -94,6 +102,7 @@ curl -X POST http://localhost:8000/generations \
 - Дизайн-настройки хранятся в `source_payload.design` (JSON), без отдельной normalized схемы.
 - Экспорт выполняется синхронно в рамках API-вызова `POST /exports`.
 - Токены оцениваются эвристически на фронтенде (без точного токенайзера).
+- Очистка объектов в MinIO при удалении карусели выполняется в режиме best-effort.
 
 ## Демо-данные
 При пустой БД backend создает демонстрационную карусель:
@@ -102,3 +111,19 @@ curl -X POST http://localhost:8000/generations \
 - статус: `ready`
 
 Это позволяет сразу проверить preview/editor/export после запуска.
+
+## Инструменты
+- Cursor
+- ChatGPT
+- Codex
+
+## Оценка времени разработки
+- MVP: ~9 часов
+- Полировка UX/UI и отладка: ~6 часов
+- Итого: ~15 часов
+
+## Оценка расхода токенов
+На одну генерацию (6–10 слайдов):
+- Prompt/Input: ~900–1,700 токенов
+- Completion/Output: ~350–1,200 токенов
+- Итого: ~1,250–2,900 токенов

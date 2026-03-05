@@ -270,6 +270,43 @@ def get_carousel(carousel_id: str, db: Session = Depends(get_db)) -> Carousel:
     return carousel
 
 
+@app.delete("/carousels/{carousel_id}")
+def delete_carousel(carousel_id: str, db: Session = Depends(get_db)) -> dict[str, str]:
+    carousel = (
+        db.query(Carousel)
+        .options(joinedload(Carousel.exports))
+        .filter(Carousel.id == carousel_id)
+        .first()
+    )
+    if not carousel:
+        raise HTTPException(status_code=404, detail="Carousel not found")
+
+    # Best-effort storage cleanup: exported ZIPs and configured background image.
+    for export in carousel.exports:
+        if not export.zip_url:
+            continue
+        key = storage_service.try_extract_object_key(export.zip_url, settings.exports_bucket)
+        if not key:
+            continue
+        try:
+            storage_service.delete_object(settings.exports_bucket, key)
+        except Exception:
+            logger.warning("Failed to delete export object key=%s", key, exc_info=True)
+
+    background_url = (carousel.source_payload or {}).get("design", {}).get("background_image_url")
+    if isinstance(background_url, str) and background_url:
+        key = storage_service.try_extract_object_key(background_url, settings.assets_bucket)
+        if key:
+            try:
+                storage_service.delete_object(settings.assets_bucket, key)
+            except Exception:
+                logger.warning("Failed to delete asset object key=%s", key, exc_info=True)
+
+    db.delete(carousel)
+    db.commit()
+    return {"status": "deleted"}
+
+
 @app.get("/carousels/{carousel_id}/slides", response_model=list[SlideRead])
 def list_slides(carousel_id: str, db: Session = Depends(get_db)) -> list[Slide]:
     _get_carousel_or_404(db, carousel_id)

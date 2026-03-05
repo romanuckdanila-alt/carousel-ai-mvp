@@ -77,17 +77,24 @@ Open:
 
 ## API endpoints overview
 - `GET /health`
-- `GET /carousels`
-- `POST /carousels`
-- `GET /carousels/{id}`
-- `GET /carousels/{id}/slides`
-- `PATCH /carousels/{id}/slides/{slide_id}`
-- `PATCH /carousels/{id}/design`
-- `POST /generations`
-- `GET /generations/{id}`
-- `POST /exports`
-- `GET /exports/{id}`
-- `POST /assets/upload`
+- `/carousels`
+  - `GET /carousels`
+  - `POST /carousels`
+  - `GET /carousels/{id}`
+  - `DELETE /carousels/{id}`
+- `/slides`
+  - `GET /carousels/{id}/slides`
+  - `PATCH /carousels/{id}/slides/{slide_id}`
+- `/design`
+  - `PATCH /carousels/{id}/design`
+- `/generations`
+  - `POST /generations`
+  - `GET /generations/{id}`
+- `/assets`
+  - `POST /assets/upload`
+- `/exports`
+  - `POST /exports`
+  - `GET /exports/{id}`
 
 ## API examples (curl)
 Health check:
@@ -220,3 +227,10 @@ Per one generation run (6–10 slides):
 - Total: ~1,250–2,900 tokens
 
 Actual token usage depends on source text size, slide count, and model behavior.
+
+## Limitations (MVP scope)
+- No authentication or user workspaces yet.
+- Async jobs use FastAPI `BackgroundTasks` (no distributed queue/worker).
+- Design settings are stored in `source_payload.design` JSON.
+- Export is triggered synchronously from API call and then polled by UI.
+- Storage cleanup is best-effort for uploaded assets/exports on carousel deletion.

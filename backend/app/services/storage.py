@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from io import BytesIO
+from urllib.parse import unquote, urlparse
 
 import boto3
 from botocore.client import Config
@@ -60,3 +61,17 @@ class StorageService:
             Params={"Bucket": bucket, "Key": key},
             ExpiresIn=expires_seconds,
         )
+
+    def delete_object(self, bucket: str, key: str) -> None:
+        self.internal_client.delete_object(Bucket=bucket, Key=key)
+
+    def try_extract_object_key(self, url: str, bucket: str) -> str | None:
+        try:
+            parsed = urlparse(url)
+            path = unquote(parsed.path.lstrip("/"))
+            bucket_prefix = f"{bucket}/"
+            if path.startswith(bucket_prefix):
+                return path[len(bucket_prefix):]
+            return path or None
+        except Exception:
+            return None

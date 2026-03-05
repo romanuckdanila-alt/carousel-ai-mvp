@@ -9,6 +9,8 @@ const error = ref("")
 const carousels = ref<Carousel[]>([])
 const previews = reactive<Record<string, Slide | null>>({})
 const viewMode = ref<"grid" | "list">("grid")
+const deleteDialogCarouselId = ref<string | null>(null)
+const deletingId = ref<string | null>(null)
 
 const statusClass = (status: string) => {
   if (status === "ready") return "bg-emerald-100 text-emerald-700"
@@ -55,6 +57,33 @@ const load = async () => {
     error.value = err?.data?.detail || err?.message || "Failed to load carousels"
   } finally {
     loading.value = false
+  }
+}
+
+const openDeleteDialog = (carouselId: string) => {
+  deleteDialogCarouselId.value = carouselId
+}
+
+const closeDeleteDialog = () => {
+  if (deletingId.value) return
+  deleteDialogCarouselId.value = null
+}
+
+const confirmDelete = async () => {
+  if (!deleteDialogCarouselId.value) return
+  const id = deleteDialogCarouselId.value
+  deletingId.value = id
+  error.value = ""
+
+  try {
+    await api<{ status: string }>(`/carousels/${id}`, { method: "DELETE" })
+    carousels.value = carousels.value.filter((carousel) => carousel.id !== id)
+    delete previews[id]
+    deleteDialogCarouselId.value = null
+  } catch (err: any) {
+    error.value = err?.data?.detail || err?.message || "Failed to delete carousel"
+  } finally {
+    deletingId.value = null
   }
 }
 
@@ -153,9 +182,29 @@ onMounted(load)
           <div class="mt-auto flex flex-wrap gap-2 pt-1">
             <NuxtLink :to="`/preview/${carousel.id}`" class="btn-secondary">Open</NuxtLink>
             <NuxtLink :to="`/editor/${carousel.id}`" class="btn-primary">Continue editing</NuxtLink>
+            <button
+              class="btn-secondary !border-rose-200 !text-rose-700 hover:!bg-rose-50"
+              :disabled="Boolean(deletingId)"
+              @click="openDeleteDialog(carousel.id)"
+            >
+              {{ deletingId === carousel.id ? 'Deleting...' : 'Delete' }}
+            </button>
           </div>
         </div>
       </article>
+    </div>
+
+    <div v-if="deleteDialogCarouselId" class="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4">
+      <div class="panel w-full max-w-sm p-5">
+        <h3 class="section-title font-display">Delete this carousel?</h3>
+        <p class="meta-copy mt-2">This action cannot be undone.</p>
+        <div class="mt-5 flex items-center justify-end gap-2">
+          <button class="btn-secondary" :disabled="Boolean(deletingId)" @click="closeDeleteDialog">Cancel</button>
+          <button class="btn-secondary !border-rose-200 !bg-rose-600 !text-white hover:!bg-rose-700" :disabled="Boolean(deletingId)" @click="confirmDelete">
+            {{ deletingId ? 'Deleting...' : 'Delete' }}
+          </button>
+        </div>
+      </div>
     </div>
   </section>
 </template>
