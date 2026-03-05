@@ -304,8 +304,9 @@ onMounted(load)
 }
 
 .thumb-item {
+  width: 140px;
   min-width: 140px;
-  flex-shrink: 0;
+  flex: 0 0 140px;
   border-radius: 0.5rem;
   padding: 0.75rem;
   border: 1px solid rgba(226, 232, 240, 1);
@@ -373,7 +374,9 @@ onMounted(load)
   }
 
   .thumb-item {
-    min-width: 140px;
+    width: 132px;
+    min-width: 132px;
+    flex: 0 0 132px;
   }
 }
 </style>
