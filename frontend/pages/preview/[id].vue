@@ -4,6 +4,7 @@ import { mapGenerationStatus, wait } from "~/composables/useApi"
 
 const route = useRoute()
 const { api } = useApi()
+const { t } = useLanguage()
 
 const carousel = ref<Carousel | null>(null)
 const slides = ref<Slide[]>([])
@@ -95,14 +96,14 @@ onMounted(load)
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="space-y-2">
           <p class="text-xs uppercase tracking-wider text-slate-500">Step 3</p>
-          <h1 class="text-2xl font-semibold text-slate-900">Preview</h1>
+          <h1 class="text-2xl font-semibold text-slate-900">{{ t("preview") }}</h1>
           <p class="text-sm text-slate-600">{{ carousel?.title || 'Generated carousel preview' }}</p>
         </div>
 
         <div class="ml-auto flex items-center gap-3">
           <button class="btn-secondary" :disabled="regenerating" @click="regenerate">
             <span v-if="regenerating" class="loader-dot" />
-            {{ regenerating ? 'Regenerating...' : 'Regenerate' }}
+            {{ regenerating ? 'Regenerating...' : t("regenerate") }}
           </button>
           <NuxtLink :to="`/editor/${carouselId}`" class="btn-primary">Open in Editor</NuxtLink>
         </div>

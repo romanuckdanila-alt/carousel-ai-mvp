@@ -3,6 +3,7 @@ import type { Carousel, CarouselLanguage, CarouselSourceType, GenerationResult }
 import { mapGenerationStatus, wait } from "~/composables/useApi"
 
 const { api } = useApi()
+const { t } = useLanguage()
 
 const method = ref<CarouselSourceType | "links">("text")
 const loading = ref(false)
@@ -102,7 +103,7 @@ const submit = async () => {
   <section class="space-y-8">
     <div class="panel p-6">
       <p class="meta-label">Step 1</p>
-      <h1 class="page-title font-display">Create Carousel</h1>
+      <h1 class="page-title font-display">{{ t("createCarousel") }}</h1>
       <p class="body-copy mt-2 max-w-[65ch]">Select source type and generate a production-ready carousel.</p>
 
       <div class="mt-6 grid gap-3 md:grid-cols-3">
@@ -179,7 +180,7 @@ const submit = async () => {
       <div class="flex flex-wrap items-center gap-3">
         <button class="btn-primary" :disabled="loading">
           <span v-if="loading" class="loader-dot" />
-          {{ loading ? 'Generating...' : 'Generate carousel' }}
+          {{ loading ? 'Generating...' : t("generate") }}
         </button>
         <NuxtLink to="/" class="btn-secondary">Cancel</NuxtLink>
       </div>

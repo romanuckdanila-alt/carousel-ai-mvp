@@ -3,6 +3,7 @@ import type { Carousel, Slide } from "~/composables/useApi"
 import { mapCarouselStatus } from "~/composables/useApi"
 
 const { api } = useApi()
+const { t } = useLanguage()
 
 const loading = ref(true)
 const error = ref("")
@@ -89,15 +90,15 @@ onMounted(load)
       <div class="flex flex-wrap items-start justify-between gap-4">
         <div class="space-y-2">
           <p class="meta-label">Workspace</p>
-          <h1 class="page-title font-display">My Carousels</h1>
+          <h1 class="page-title font-display">{{ t("myCarousels") }}</h1>
           <p class="body-copy max-w-[65ch]">Manage generated carousels, continue editing and export final assets.</p>
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
           <button class="btn-secondary" @click="viewMode = 'grid'">Grid</button>
           <button class="btn-secondary" @click="viewMode = 'list'">List</button>
-          <button class="btn-secondary" @click="load">Refresh</button>
-          <NuxtLink to="/create" class="btn-primary">Create Carousel</NuxtLink>
+          <button class="btn-secondary" @click="load">{{ t("refresh") }}</button>
+          <NuxtLink to="/create" class="btn-primary">{{ t("createCarousel") }}</NuxtLink>
         </div>
       </div>
     </div>
@@ -158,14 +159,14 @@ onMounted(load)
           </p>
 
           <div class="mt-auto flex items-center gap-2 pt-4">
-            <NuxtLink :to="`/preview/${carousel.id}`" class="btn-secondary card-action-btn">Open</NuxtLink>
-            <NuxtLink :to="`/editor/${carousel.id}`" class="btn-primary card-action-btn">Continue editing</NuxtLink>
+            <NuxtLink :to="`/preview/${carousel.id}`" class="btn-secondary card-action-btn">{{ t("open") }}</NuxtLink>
+            <NuxtLink :to="`/editor/${carousel.id}`" class="btn-primary card-action-btn">{{ t("continueEditing") }}</NuxtLink>
             <button
               class="btn-secondary card-action-btn !border-rose-200 !text-rose-700 hover:!bg-rose-50"
               :disabled="Boolean(deletingId)"
               @click="openDeleteDialog(carousel.id)"
             >
-              {{ deletingId === carousel.id ? 'Deleting...' : 'Delete' }}
+              {{ deletingId === carousel.id ? 'Deleting...' : t("delete") }}
             </button>
           </div>
         </div>

@@ -12,6 +12,7 @@ import { mapCarouselStatus, mapGenerationStatus, wait } from "~/composables/useA
 
 const route = useRoute()
 const { api } = useApi()
+const { t } = useLanguage()
 
 const carousel = ref<Carousel | null>(null)
 const slides = ref<Slide[]>([])
@@ -339,7 +340,7 @@ onMounted(load)
           </span>
           <button class="btn-secondary" :disabled="regenerating" @click="regenerate">
             <span v-if="regenerating" class="loader-dot" />
-            {{ regenerating ? 'Regenerating...' : 'Regenerate' }}
+            {{ regenerating ? 'Regenerating...' : t("regenerate") }}
           </button>
         </div>
       </div>
@@ -475,7 +476,7 @@ onMounted(load)
           :class="activeSection === 'export' ? 'bg-ink text-white' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'"
           @click="activeSection = 'export'"
         >
-          Export
+          {{ t("export") }}
         </button>
       </div>
 
