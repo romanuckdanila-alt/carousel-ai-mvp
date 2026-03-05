@@ -90,16 +90,16 @@ onMounted(load)
 </script>
 
 <template>
-  <section class="space-y-6">
+  <section class="space-y-8">
     <div class="panel p-6">
       <div class="flex flex-wrap items-center justify-between gap-3">
-        <div class="space-y-1">
-          <p class="meta-label">Step 3</p>
-          <h1 class="page-title font-display">Preview</h1>
-          <p class="body-copy max-w-[65ch]">{{ carousel?.title || 'Generated carousel preview' }}</p>
+        <div class="space-y-2">
+          <p class="text-xs uppercase tracking-wider text-slate-500">Step 3</p>
+          <h1 class="text-2xl font-semibold text-slate-900">Preview</h1>
+          <p class="text-sm text-slate-600">{{ carousel?.title || 'Generated carousel preview' }}</p>
         </div>
 
-        <div class="flex flex-wrap gap-2">
+        <div class="ml-auto flex items-center gap-3">
           <button class="btn-secondary" :disabled="regenerating" @click="regenerate">
             <span v-if="regenerating" class="loader-dot" />
             {{ regenerating ? 'Regenerating...' : 'Regenerate' }}
@@ -116,9 +116,9 @@ onMounted(load)
       </div>
     </div>
 
-    <div v-if="loading" class="panel space-y-4 p-4 md:p-6">
+    <div v-if="loading" class="panel space-y-6 p-4 md:p-6">
       <div class="skeleton h-4 w-32" />
-      <div class="preview-wrapper">
+      <div class="preview-stage">
         <div class="preview-scale">
           <div class="skeleton w-full rounded-[24px]" style="aspect-ratio: 4 / 5;" />
         </div>
@@ -129,15 +129,15 @@ onMounted(load)
     </div>
     <p v-else-if="error" class="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{{ error }}</p>
 
-    <div v-else class="space-y-4">
+    <div v-else class="space-y-8">
       <div class="panel overflow-visible p-4 md:p-6">
-        <div class="flex items-center justify-between">
-          <button class="btn-secondary nav-arrow" :disabled="!canPrev" @click="goPrev">←</button>
+        <div class="mb-6 flex items-center justify-between">
+          <button class="preview-nav-btn" :disabled="!canPrev" @click="goPrev">←</button>
           <p class="meta-label">Slide {{ index + 1 }} / {{ slides.length }}</p>
-          <button class="btn-secondary nav-arrow" :disabled="!canNext" @click="goNext">→</button>
+          <button class="preview-nav-btn" :disabled="!canNext" @click="goNext">→</button>
         </div>
 
-        <div class="preview-wrapper mt-5">
+        <div class="preview-stage">
           <div class="preview-scale">
             <transition name="fade" mode="out-in">
               <article v-if="currentSlide" :key="currentSlide.id" class="slide-canvas slide-card">
@@ -159,9 +159,9 @@ onMounted(load)
         </div>
       </div>
 
-      <div class="panel overflow-visible p-4">
+      <div class="panel overflow-visible p-4 md:p-6">
         <p class="meta-label">Slides</p>
-        <div class="thumb-strip mt-3">
+        <div class="thumb-strip">
           <button
             v-for="(slide, i) in slides"
             :key="slide.id"
@@ -201,11 +201,20 @@ onMounted(load)
   justify-content: center;
 }
 
+.preview-stage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 3rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(226, 232, 240, 1);
+  background: rgba(248, 250, 252, 1);
+}
+
 .preview-scale {
-  --preview-scale: 0.95;
-  width: min(100%, 560px, calc((100vh - 320px) * 4 / 5));
-  transform: scale(var(--preview-scale));
-  transform-origin: top center;
+  width: min(100%, 420px);
+  max-width: 420px;
+  margin: 0 auto;
   overflow: visible;
 }
 
@@ -266,20 +275,40 @@ onMounted(load)
   color: #627d98;
 }
 
+.preview-nav-btn {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(226, 232, 240, 1);
+  background: #ffffff;
+  color: #334155;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.preview-nav-btn:hover:not(:disabled) {
+  background: rgba(248, 250, 252, 1);
+  transform: translateY(-1px);
+}
+
+.preview-nav-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .thumb-strip {
   overflow-x: auto;
   overflow-y: visible;
-  padding-bottom: 8px;
+  padding: 1rem 0;
   display: flex;
-  gap: 12px;
+  gap: 1rem;
 }
 
 .thumb-item {
-  width: 180px;
+  min-width: 140px;
   flex-shrink: 0;
-  border-radius: 20px;
-  padding: 0;
-  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(226, 232, 240, 1);
   background: #ffffff;
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
@@ -290,13 +319,13 @@ onMounted(load)
 }
 
 .thumb-item--active {
-  border-color: rgba(16, 42, 67, 0.65);
-  box-shadow: var(--shadow-soft);
+  border-color: #102a43;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
 }
 
 .thumb-canvas {
   aspect-ratio: 4 / 5;
-  padding: 12px;
+  padding: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -327,25 +356,24 @@ onMounted(load)
 }
 
 @media (max-width: 1120px) {
-  .preview-scale {
-    --preview-scale: 0.9;
+  .preview-stage {
+    padding: 2.5rem 1rem;
   }
 }
 
 @media (max-width: 820px) {
-  .preview-scale {
-    --preview-scale: 0.85;
+  .preview-stage {
+    padding: 2rem 0.75rem;
   }
 }
 
 @media (max-width: 560px) {
   .preview-scale {
-    --preview-scale: 0.8;
-    width: min(100%, 460px, calc((100vh - 300px) * 4 / 5));
+    width: min(100%, 360px);
   }
 
   .thumb-item {
-    width: 148px;
+    min-width: 140px;
   }
 }
 </style>
